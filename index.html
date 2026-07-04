@@ -619,6 +619,26 @@ body{
   color:var(--text); font-family:'JetBrains Mono', monospace; font-size:12px;
   padding:10px 8px; outline:none;
 }
+.toolbar-btn{
+  background:var(--bg-panel); border:1px solid var(--line); color:var(--text-dim);
+  font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:0.3px;
+  padding:10px 12px; border-radius:6px; cursor:pointer; white-space:nowrap;
+}
+.toolbar-btn:hover{ border-color:#4aa8e8; color:#4aa8e8; }
+.toolbar-btn.active{ border-color:#4aa8e8; color:#4aa8e8; background:rgba(74,168,232,0.1); }
+
+/* ---------- Recordatorio de backup ---------- */
+.backup-reminder-banner{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  background:rgba(240,168,64,0.08); border:1px solid var(--amber); border-radius:10px;
+  padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text);
+}
+.backup-reminder-actions{ display:flex; gap:8px; flex-shrink:0; }
+.backup-reminder-actions button{
+  background:none; border:1px solid var(--amber); color:var(--amber);
+  font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 10px; border-radius:6px; cursor:pointer;
+}
+.backup-reminder-actions button:hover{ background:rgba(240,168,64,0.15); }
 
 /* ---------- Log list ---------- */
 .log-label{
@@ -748,6 +768,20 @@ body{
   margin-bottom:8px;
 }
 .entry-card.movie-entry{ border-left-color:var(--rewatch); }
+.entry-card.bulk-selected{ border-color:#4aa8e8; background:rgba(74,168,232,0.06); }
+.entry-select-box{
+  width:18px; height:18px; accent-color:#4aa8e8; cursor:pointer; flex-shrink:0; margin-right:2px;
+}
+
+/* ---------- Barra de edición en bloque ---------- */
+.bulk-action-bar{
+  position:sticky; top:8px; z-index:15;
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  background:#181e25; border:1px solid #4aa8e8; border-radius:10px;
+  padding:10px 14px; margin-bottom:14px;
+  font-size:12px; color:var(--text);
+}
+.bulk-action-bar-btns{ display:flex; gap:8px; flex-wrap:wrap; }
 .entry-left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
 .entry-tag-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .entry-tag{ font-size:13px; font-weight:700; color:var(--amber); letter-spacing:1px; }
@@ -941,6 +975,14 @@ body{
 <div class="wrap">
 
   <div class="toast-container" id="toastContainer"></div>
+
+  <div class="backup-reminder-banner" id="backupReminderBanner" style="display:none;">
+    <span id="backupReminderText"></span>
+    <div class="backup-reminder-actions">
+      <button type="button" id="backupReminderExportBtn">💾 Exportar ahora</button>
+      <button type="button" id="backupReminderDismissBtn" title="Recordar en 7 días">✕</button>
+    </div>
+  </div>
 
   <div class="deck">
     <div class="deck-top">
@@ -1152,6 +1194,15 @@ body{
           <option value="nombre">Ordenar: Nombre (A-Z)</option>
           <option value="calificacion">Ordenar: Mejor calificada</option>
         </select>
+        <button type="button" class="toolbar-btn" id="btnToggleBulkSelect">☑️ Selección múltiple</button>
+      </div>
+
+      <div class="bulk-action-bar" id="bulkActionBar" style="display:none;">
+        <span id="bulkSelCount">0 capítulos seleccionados</span>
+        <div class="bulk-action-bar-btns">
+          <button type="button" class="toolbar-btn" id="btnBulkEditOpen">✏️ Editar seleccionados</button>
+          <button type="button" class="toolbar-btn" id="btnBulkSelectCancel">Cancelar selección</button>
+        </div>
       </div>
 
       <div class="log-label">Registro</div>
@@ -1468,6 +1519,52 @@ body{
         <input type="number" id="genreModalDuration" min="1" placeholder="Dejar vacío = usar el promedio general">
       </div>
       <button class="btn-record" id="genreModalSave" style="margin-top:18px;">✔ Guardar</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="bulkEditModalOverlay" style="display:none;">
+    <div class="modal-card">
+      <button class="wrapped-close" id="bulkEditModalClose" title="Cerrar">✕</button>
+      <div class="panel-label">✏️ Editar en bloque <span id="bulkEditCountLabel"></span></div>
+      <div style="font-size:11px; color:var(--text-dim); margin:-4px 0 14px; line-height:1.5;">
+        El género y el tipo se guardan por serie (no por capítulo), así que se aplicarán a todas las series de los capítulos que seleccionaste.
+      </div>
+
+      <label class="checkbox-row-inline">
+        <input type="checkbox" id="beRatingToggle">
+        ⭐ Cambiar calificación
+      </label>
+      <div class="star-picker" id="beRatingPicker" style="opacity:0.4; pointer-events:none;">
+        <button type="button" data-v="1">★</button>
+        <button type="button" data-v="2">★</button>
+        <button type="button" data-v="3">★</button>
+        <button type="button" data-v="4">★</button>
+        <button type="button" data-v="5">★</button>
+        <span class="clear-star" id="beClearStar">sin calificación</span>
+      </div>
+
+      <label class="checkbox-row-inline" style="margin-top:18px;">
+        <input type="checkbox" id="beGenreToggle">
+        🏷️ Cambiar género / tipo
+      </label>
+      <div id="beGenreFields" style="opacity:0.4; pointer-events:none;">
+        <div class="genre-check-grid" id="beGenreCheckGrid"></div>
+        <label class="checkbox-row-inline" style="margin-top:6px;">
+          <input type="checkbox" id="beGenreAppend" checked>
+          Añadir a los géneros ya asignados (en vez de reemplazarlos)
+        </label>
+        <div class="field full-row" style="margin-top:10px;">
+          <label for="beTypeSelect">Tipo</label>
+          <select id="beTypeSelect">
+            <option value="__nochange">No cambiar el tipo</option>
+            <option value="">Sin especificar (borra el tipo actual)</option>
+            <option value="live">🎬 Live action</option>
+            <option value="animada">🖼️ Animada</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-record" id="bulkEditApply" style="margin-top:20px;">✔ Aplicar cambios</button>
     </div>
   </div>
 
@@ -1820,6 +1917,7 @@ async function loadAll(){
   renderTrash();
   updateGlobalStats();
   if(abandonedChanged || trashPurged) await saveAll();
+  checkBackupReminder();
 }
 
 async function saveAll(){
@@ -1896,6 +1994,9 @@ function exportBackup(){
   a.download = `bitacora-backup-${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  localStorage.setItem('lastBackupExportIso', new Date().toISOString());
+  localStorage.removeItem('backupReminderSnoozeUntilIso');
+  hideBackupReminder();
 }
 
 async function restoreBackup(file){
@@ -1922,6 +2023,42 @@ document.getElementById('backupFileInput').addEventListener('change', async (e) 
     console.error('Error al restaurar backup:', err);
     await customAlert('No se pudo leer ese archivo. Asegúrate de que sea un backup exportado desde esta misma app (.json).', { icon:'⚠️', title:'Error' });
   }
+});
+
+/* ========================= RECORDATORIO DE BACKUP ========================= */
+const BACKUP_REMINDER_DAYS = 30;
+const BACKUP_SNOOZE_DAYS = 7;
+
+function hideBackupReminder(){
+  document.getElementById('backupReminderBanner').style.display = 'none';
+}
+function showBackupReminder(text){
+  document.getElementById('backupReminderText').textContent = text;
+  document.getElementById('backupReminderBanner').style.display = 'flex';
+}
+function checkBackupReminder(){
+  const hasData = (entries.length + movieEntries.length) > 0;
+  if(!hasData) return; // no molestar en una instalación recién estrenada, sin nada que respaldar
+
+  const snoozeUntil = localStorage.getItem('backupReminderSnoozeUntilIso');
+  if(snoozeUntil && new Date(snoozeUntil) > new Date()) return;
+
+  const last = localStorage.getItem('lastBackupExportIso');
+  if(!last){
+    showBackupReminder('Todavía no has exportado ningún backup en JSON. Es tu respaldo de respaldo por si Google Drive llegara a fallar.');
+    return;
+  }
+  const daysSince = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  if(daysSince >= BACKUP_REMINDER_DAYS){
+    showBackupReminder(`Han pasado ${daysSince} días desde tu último backup exportado. Vale la pena exportar uno nuevo, por si Google Drive falla.`);
+  }
+}
+
+document.getElementById('backupReminderExportBtn').addEventListener('click', exportBackup);
+document.getElementById('backupReminderDismissBtn').addEventListener('click', () => {
+  const snoozeUntil = new Date(Date.now() + BACKUP_SNOOZE_DAYS * 86400000);
+  localStorage.setItem('backupReminderSnoozeUntilIso', snoozeUntil.toISOString());
+  hideBackupReminder();
 });
 
 /* ========================= GOOGLE DRIVE SYNC ========================= */
@@ -2647,16 +2784,20 @@ function render(){
       if(e.episode !== '' && e.episode != null) tParts.push(`E${pad(e.episode)}`);
       const tag = tParts.length ? tParts.join(' ') : 'Sin especificar';
       const stars = starString(e.rating);
+      const isSelected = bulkSelectedIds.has(e.id);
       return `
-        <div class="entry-card" data-id="${e.id}">
-          <div class="entry-left">
-            <div class="entry-tag-row">
-              <span class="entry-tag">${tag}</span>
-              ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
-              ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+        <div class="entry-card ${isSelected ? 'bulk-selected' : ''}" data-id="${e.id}">
+          <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+            ${bulkEditMode ? `<input type="checkbox" class="entry-select-box" ${isSelected ? 'checked' : ''} onchange="toggleEntrySelection('${e.id}', this.closest('.entry-card'))">` : ''}
+            <div class="entry-left">
+              <div class="entry-tag-row">
+                <span class="entry-tag">${tag}</span>
+                ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
+                ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+              </div>
+              <div class="entry-time">${fmtDate(e.date, e.time)}</div>
+              ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
             </div>
-            <div class="entry-time">${fmtDate(e.date, e.time)}</div>
-            ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
           </div>
           <div class="entry-actions">
             <button class="del-btn" onclick="startEdit('${e.id}')" title="Editar">✎</button>
@@ -3912,6 +4053,168 @@ document.getElementById('genreModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'genreModalOverlay') closeGenreModal();
 });
 
+/* ========================= EDICIÓN EN BLOQUE ========================= */
+let bulkEditMode = false;
+let bulkSelectedIds = new Set();
+let beRatingValue = 0;
+
+function toggleBulkEditMode(){
+  bulkEditMode = !bulkEditMode;
+  bulkSelectedIds.clear();
+  document.getElementById('btnToggleBulkSelect').classList.toggle('active', bulkEditMode);
+  document.getElementById('btnToggleBulkSelect').textContent = bulkEditMode ? '✕ Salir de selección' : '☑️ Selección múltiple';
+  updateBulkActionBar();
+  render();
+}
+window.toggleBulkEditMode = toggleBulkEditMode;
+
+function toggleEntrySelection(id, cardEl){
+  if(bulkSelectedIds.has(id)) bulkSelectedIds.delete(id); else bulkSelectedIds.add(id);
+  if(cardEl) cardEl.classList.toggle('bulk-selected', bulkSelectedIds.has(id));
+  updateBulkActionBar();
+}
+window.toggleEntrySelection = toggleEntrySelection;
+
+function updateBulkActionBar(){
+  const bar = document.getElementById('bulkActionBar');
+  const n = bulkSelectedIds.size;
+  if(bulkEditMode && n > 0){
+    bar.style.display = 'flex';
+    document.getElementById('bulkSelCount').textContent = `${n} capítulo${n === 1 ? '' : 's'} seleccionado${n === 1 ? '' : 's'}`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+document.getElementById('btnToggleBulkSelect').addEventListener('click', toggleBulkEditMode);
+document.getElementById('btnBulkSelectCancel').addEventListener('click', () => {
+  bulkSelectedIds.clear();
+  updateBulkActionBar();
+  render();
+});
+
+function setBulkRating(v){
+  beRatingValue = v;
+  document.querySelectorAll('#beRatingPicker button').forEach(btn => {
+    btn.classList.toggle('on', parseInt(btn.dataset.v, 10) <= v);
+  });
+}
+document.getElementById('beRatingPicker').addEventListener('click', (e) => {
+  if(e.target.tagName === 'BUTTON') setBulkRating(parseInt(e.target.dataset.v, 10));
+});
+document.getElementById('beClearStar').addEventListener('click', () => setBulkRating(0));
+
+document.getElementById('beRatingToggle').addEventListener('change', (e) => {
+  document.getElementById('beRatingPicker').style.opacity = e.target.checked ? '1' : '0.4';
+  document.getElementById('beRatingPicker').style.pointerEvents = e.target.checked ? 'auto' : 'none';
+});
+document.getElementById('beGenreToggle').addEventListener('change', (e) => {
+  document.getElementById('beGenreFields').style.opacity = e.target.checked ? '1' : '0.4';
+  document.getElementById('beGenreFields').style.pointerEvents = e.target.checked ? 'auto' : 'none';
+});
+
+function openBulkEditModal(){
+  if(bulkSelectedIds.size === 0) return;
+  document.getElementById('bulkEditCountLabel').textContent = `(${bulkSelectedIds.size} capítulo${bulkSelectedIds.size === 1 ? '' : 's'})`;
+
+  document.getElementById('beRatingToggle').checked = false;
+  document.getElementById('beRatingPicker').style.opacity = '0.4';
+  document.getElementById('beRatingPicker').style.pointerEvents = 'none';
+  setBulkRating(0);
+
+  document.getElementById('beGenreToggle').checked = false;
+  document.getElementById('beGenreFields').style.opacity = '0.4';
+  document.getElementById('beGenreFields').style.pointerEvents = 'none';
+  document.getElementById('beGenreAppend').checked = true;
+  document.getElementById('beTypeSelect').value = '__nochange';
+  document.getElementById('beGenreCheckGrid').innerHTML = GENRES.map(g => `
+    <label class="genre-check-pill">
+      <input type="checkbox" value="${escapeHtml(g)}" onchange="this.closest('label').classList.toggle('checked', this.checked)">
+      ${escapeHtml(g)}
+    </label>`).join('');
+
+  document.getElementById('bulkEditModalOverlay').style.display = 'flex';
+}
+function closeBulkEditModal(){
+  document.getElementById('bulkEditModalOverlay').style.display = 'none';
+}
+window.closeBulkEditModal = closeBulkEditModal;
+
+document.getElementById('btnBulkEditOpen').addEventListener('click', openBulkEditModal);
+document.getElementById('bulkEditModalClose').addEventListener('click', closeBulkEditModal);
+document.getElementById('bulkEditModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'bulkEditModalOverlay') closeBulkEditModal();
+});
+
+document.getElementById('bulkEditApply').addEventListener('click', async () => {
+  const selectedEntries = entries.filter(e => bulkSelectedIds.has(e.id));
+  if(!selectedEntries.length){ closeBulkEditModal(); return; }
+
+  const changeRating = document.getElementById('beRatingToggle').checked;
+  const changeGenre = document.getElementById('beGenreToggle').checked;
+
+  const prevRatings = new Map(selectedEntries.map(e => [e.id, e.rating]));
+  const prevGenres = new Map();
+  const prevTypes = new Map();
+
+  if(changeRating){
+    selectedEntries.forEach(e => { e.rating = beRatingValue; });
+  }
+
+  let touchedKeys = [];
+  if(changeGenre){
+    const selectedGenres = [...document.querySelectorAll('#beGenreCheckGrid input:checked')].map(i => i.value);
+    const typeVal = document.getElementById('beTypeSelect').value;
+    const append = document.getElementById('beGenreAppend').checked;
+    touchedKeys = [...new Set(selectedEntries.map(e => seriesKey(e.serie)))];
+
+    touchedKeys.forEach(key => {
+      prevGenres.set(key, genres[key] ? [...genres[key]] : undefined);
+      prevTypes.set(key, types[key]);
+
+      if(selectedGenres.length){
+        if(append){
+          const existing = genres[key] || [];
+          genres[key] = [...new Set([...existing, ...selectedGenres])];
+        } else {
+          genres[key] = [...selectedGenres];
+        }
+      } else if(!append){
+        delete genres[key];
+      }
+      if(typeVal !== '__nochange'){
+        if(typeVal) types[key] = typeVal; else delete types[key];
+      }
+    });
+  }
+
+  const count = selectedEntries.length;
+  closeBulkEditModal();
+  bulkSelectedIds.clear();
+  updateBulkActionBar();
+  render();
+  await saveAll();
+
+  showUndoToast(`${count} capítulo${count === 1 ? '' : 's'} actualizado${count === 1 ? '' : 's'} en bloque.`, async () => {
+    if(changeRating){
+      prevRatings.forEach((rating, id) => {
+        const e = entries.find(x => x.id === id);
+        if(e) e.rating = rating;
+      });
+    }
+    if(changeGenre){
+      touchedKeys.forEach(key => {
+        const g = prevGenres.get(key);
+        if(g === undefined) delete genres[key]; else genres[key] = g;
+        const t = prevTypes.get(key);
+        if(t === undefined) delete types[key]; else types[key] = t;
+      });
+    }
+    render();
+    await saveAll();
+  });
+});
+
 /* ========================= WRAPPED ========================= */
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 function formatMonthLabel(ym){
@@ -4529,6 +4832,9 @@ document.addEventListener('keydown', (e) => {
   }
   if(e.key === 'Escape' && document.getElementById('genreModalOverlay').style.display === 'flex'){
     closeGenreModal();
+  }
+  if(e.key === 'Escape' && document.getElementById('bulkEditModalOverlay').style.display === 'flex'){
+    closeBulkEditModal();
   }
   if(e.key === 'Escape' && document.getElementById('randomModalOverlay').style.display === 'flex'){
     closeRandomModal();
