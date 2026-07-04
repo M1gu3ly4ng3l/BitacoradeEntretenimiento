@@ -4,7 +4,4183 @@
 <meta charset="UTF-8">
 <title>Bitácora de Series y Películas</title>
 <style>
+@import url('https://fonts.google<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Bitácora de Series y Películas</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg: #0e1216;
+  --bg-panel: #161b21;
+  --bg-card: #1b2129;
+  --line: #2a323c;
+  --text: #e8e6de;
+  --text-dim: #8b93a1;
+  --rec: #e8432e;
+  --rec-glow: rgba(232,67,46,0.35);
+  --tape: #4ade80;
+  --amber: #f0a840;
+  --star: #f0c840;
+  --rewatch: #a78bfa;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);}
+body{
+  font-family:'JetBrains Mono', monospace;
+  color:var(--text);
+  min-height:100vh;
+}
+
+.wrap{
+  max-width:780px;
+  margin:0 auto;
+  padding:28px 20px 60px;
+}
+
+/* ---------- Header : deck faceplate ---------- */
+.deck{
+  background:linear-gradient(180deg,#181e25,#12161b);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:20px 22px;
+  position:relative;
+  overflow:hidden;
+  margin-bottom:20px;
+}
+.deck::before{
+  content:"";
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+  pointer-events:none;
+}
+.deck-top{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.deck-title{
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  font-size:22px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--text);
+}
+.deck-title span{ color:var(--text-dim); font-weight:500; }
+.rec-indicator{
+  display:flex; align-items:center; gap:8px;
+  font-size:11px;
+  letter-spacing:2px;
+  color:var(--rec);
+  text-transform:uppercase;
+}
+.rec-dot{
+  width:9px; height:9px; border-radius:50%;
+  background:var(--rec);
+  box-shadow:0 0 8px 2px var(--rec-glow);
+  animation:blink 1.6s infinite;
+}
+@keyframes blink{ 0%,55%{opacity:1;} 56%,100%{opacity:0.25;} }
+.deck-counter{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12.5px;
+  color:var(--tape);
+  letter-spacing:1px;
+  border-top:1px dashed var(--line);
+  padding-top:12px;
+  display:flex; gap:18px; flex-wrap:wrap;
+}
+.deck-counter b{ color:var(--text); font-weight:700; }
+
+.wrapped-trigger{
+  margin-top:14px;
+  width:100%;
+  background:linear-gradient(90deg, var(--rewatch), var(--rec));
+  border:none;
+  color:#fff;
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  font-size:12.5px;
+  padding:11px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.wrapped-trigger:hover{ filter:brightness(1.08); }
+
+.backup-row{ display:flex; gap:8px; margin-top:10px; }
+.backup-btn{
+  flex:1;
+  background:none;
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  letter-spacing:0.3px;
+  padding:9px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.backup-btn:hover{ border-color:var(--tape); color:var(--tape); }
+
+.wrapped-overlay{
+  position:fixed; inset:0;
+  background:rgba(5,7,9,0.92);
+  backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000;
+  padding:20px;
+}
+.wrapped-card{
+  --slide-color-a:#1b2129; --slide-color-b:#0e1216;
+  width:100%; max-width:420px; min-height:440px;
+  background:linear-gradient(160deg, var(--slide-color-a), var(--slide-color-b));
+  border-radius:18px;
+  border:1px solid var(--line);
+  padding:64px 28px 26px;
+  display:flex; flex-direction:column;
+  position:relative;
+  overflow:hidden;
+  animation:wrappedIn .3s ease;
+}
+@keyframes wrappedIn{ from{opacity:0; transform:scale(0.96);} to{opacity:1; transform:scale(1);} }
+.wrapped-close{
+  position:absolute; top:14px; right:14px;
+  background:rgba(255,255,255,0.08); border:none; color:var(--text);
+  width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px;
+}
+.wrapped-dots{ display:flex; gap:6px; margin-bottom:26px; }
+.wrapped-dot{ flex:1; height:3px; border-radius:3px; background:rgba(255,255,255,0.15); transition:background .2s ease; }
+.wrapped-dot.active{ background:var(--text); }
+.wrapped-dot.done{ background:rgba(255,255,255,0.5); }
+.wrapped-body{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:10px;
+}
+.wrapped-icon{ font-size:44px; animation:wrappedPop .35s ease; }
+.wrapped-cover-img{
+  width:110px; height:110px; object-fit:cover; border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.15);
+}
+@keyframes wrappedPop{ from{ transform:scale(0.6); opacity:0; } to{ transform:scale(1); opacity:1; } }
+.wrapped-eyebrow{
+  font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:2px;
+  text-transform:uppercase; color:var(--text-dim);
+}
+.wrapped-big{
+  font-family:'Oswald', sans-serif; font-weight:700; font-size:34px; color:var(--text);
+  line-height:1.2; word-break:break-word;
+}
+.wrapped-sub{ font-size:13px; color:var(--text-dim); max-width:280px; line-height:1.5; }
+.wrapped-music-note{
+  font-size:11px; color:var(--rewatch); letter-spacing:0.5px; margin-top:6px;
+  display:flex; align-items:center; gap:6px;
+}
+.wrapped-music-note .dot{
+  width:6px; height:6px; border-radius:50%; background:var(--rewatch);
+  animation:blink 1.6s infinite;
+}
+.wrapped-nav{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; gap:10px; }
+.wrapped-nav-btn{
+  background:rgba(255,255,255,0.08); border:none; color:var(--text);
+  padding:11px 18px; border-radius:8px; font-family:'Oswald',sans-serif;
+  font-size:12px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; flex-shrink:0;
+}
+.wrapped-nav-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+.wrapped-nav-btn.primary{ background:var(--text); color:var(--bg); font-weight:700; flex:1; }
+
+.wrapped-year-list{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+.wrapped-year-btn{
+  background:var(--bg-card); border:1px solid var(--line); color:var(--text);
+  font-family:'Oswald', sans-serif; font-weight:600; letter-spacing:1px; text-transform:uppercase;
+  font-size:13px; padding:12px; border-radius:8px; cursor:pointer; text-align:left;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.wrapped-year-btn:hover{ border-color:var(--rewatch); color:var(--rewatch); }
+.wrapped-year-btn .count{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--text-dim); text-transform:none; letter-spacing:0; }
+.wrapped-year-btn.all-time{ border-color:var(--rewatch); background:linear-gradient(90deg, rgba(167,139,250,0.12), transparent); }
+
+.modal-overlay{
+  position:fixed; inset:0;
+  background:rgba(5,7,9,0.85);
+  backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000;
+  padding:20px;
+}
+.modal-card{
+  width:100%; max-width:400px; max-height:85vh; overflow-y:auto;
+  background:var(--bg-panel); border:1px solid var(--line); border-radius:14px;
+  padding:26px 22px 22px; position:relative;
+  animation:wrappedIn .2s ease;
+}
+.genre-check-grid{ display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 6px; }
+.genre-check-pill{
+  display:flex; align-items:center; gap:6px;
+  border:1px solid var(--line); border-radius:20px; padding:7px 12px;
+  cursor:pointer; font-size:12px; color:var(--text-dim);
+}
+.genre-check-pill input{ accent-color:var(--rewatch); cursor:pointer; }
+.genre-check-pill.checked{ border-color:var(--rewatch); color:var(--text); background:rgba(167,139,250,0.08); }
+
+/* ---------- Tabs ---------- */
+.tab-bar{
+  display:flex; gap:8px;
+  margin-bottom:16px;
+}
+.tab-btn{
+  flex:1;
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  font-family:'Oswald', sans-serif;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  font-size:13px;
+  padding:13px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.tab-btn.active{
+  background:var(--bg-card);
+  color:var(--text);
+  border-color:var(--tape);
+}
+.tab-btn:hover:not(.active){ border-color:var(--text-dim); }
+.tab-btn.movies-tab.active{ border-color:var(--rewatch); }
+.tab-btn.rankings-tab.active{ border-color:var(--star); }
+.tab-btn.activity-tab.active{ border-color:#4aa8e8; }
+.tab-btn.achievements-tab.active{ border-color:#f0a840; }
+
+/* ---------- Mapa de actividad (heatmap) ---------- */
+.activity-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px; flex-wrap:wrap; gap:10px;
+}
+.activity-year-nav{ display:flex; align-items:center; gap:10px; }
+.activity-year-btn{
+  background:none; border:1px solid var(--line); color:var(--text-dim);
+  width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px;
+}
+.activity-year-btn:hover:not(:disabled){ border-color:#4aa8e8; color:#4aa8e8; }
+.activity-year-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+.activity-year-label{ font-family:'Oswald', sans-serif; font-size:16px; font-weight:600; color:var(--text); min-width:48px; text-align:center; }
+.activity-total{ font-size:11.5px; color:var(--text-dim); }
+.activity-total b{ color:var(--text); }
+
+.activity-scroll{ overflow-x:auto; padding-bottom:6px; }
+.activity-months{ display:flex; gap:3px; margin-bottom:4px; margin-left:22px; }
+.activity-month-label{
+  font-size:9.5px; color:var(--text-dim); letter-spacing:0.5px; text-transform:uppercase;
+}
+.activity-body{ display:flex; gap:3px; }
+.activity-row{ display:flex; }
+.activity-daylabels{
+  display:flex; flex-direction:column; gap:3px; margin-right:4px;
+  font-size:9px; color:var(--text-dim); justify-content:flex-start;
+}
+.activity-daylabels span{ height:11px; line-height:11px; }
+.activity-week{ display:flex; flex-direction:column; gap:3px; }
+.activity-day{
+  width:11px; height:11px; border-radius:2px; background:var(--bg-card);
+  border:1px solid rgba(255,255,255,0.04); cursor:pointer;
+}
+.activity-day.empty{ background:transparent; border:none; cursor:default; }
+.activity-day.level-1{ background:rgba(74,222,128,0.25); }
+.activity-day.level-2{ background:rgba(74,222,128,0.5); }
+.activity-day.level-3{ background:rgba(74,222,128,0.75); }
+.activity-day.level-4{ background:var(--tape); }
+.activity-day.selected{ outline:2px solid #4aa8e8; outline-offset:1px; }
+.activity-legend{ display:flex; align-items:center; gap:5px; font-size:9.5px; color:var(--text-dim); margin-top:10px; justify-content:flex-end; }
+.activity-legend .activity-day{ cursor:default; }
+
+.activity-detail{
+  margin-top:16px; background:var(--bg-card); border:1px solid var(--line); border-radius:8px; padding:14px;
+}
+.activity-detail-title{ font-family:'Oswald', sans-serif; font-size:13px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.activity-detail-item{ font-size:12px; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); }
+.activity-detail-item:last-child{ border-bottom:none; }
+.activity-detail-empty{ font-size:12px; color:var(--text-dim); font-style:italic; }
+
+.subtab-bar{
+  display:flex; gap:8px;
+  margin-bottom:18px;
+}
+.subtab-btn{
+  background:none;
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  font-family:'JetBrains Mono', monospace;
+  font-size:11.5px;
+  letter-spacing:0.5px;
+  padding:8px 14px;
+  border-radius:20px;
+  cursor:pointer;
+}
+.subtab-btn.active{ border-color:var(--amber); color:var(--amber); background:rgba(240,168,64,0.08); }
+.subtab-btn.random-btn{ border-color:var(--rewatch); color:var(--rewatch); }
+.subtab-btn.random-btn:hover{ background:rgba(167,139,250,0.1); }
+.subtab-count{
+  background:var(--amber); color:var(--bg); font-size:10px; font-weight:700;
+  padding:1px 6px; border-radius:10px; margin-left:6px;
+}
+
+.random-pick-card{ text-align:center; padding:10px 0 4px; }
+.random-pick-cover{
+  width:96px; height:96px; border-radius:12px; margin:0 auto 14px;
+  background-size:cover; background-position:center;
+  background-color:var(--bg-card); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; font-size:34px;
+}
+.random-pick-name{ font-family:'Oswald', sans-serif; font-size:20px; font-weight:700; color:var(--text); margin-bottom:8px; }
+.random-pick-meta{ display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+.random-pick-note{ font-size:12px; color:var(--text-dim); margin-top:10px; line-height:1.5; }
+.random-modal-actions{ display:flex; gap:8px; margin-top:18px; }
+.random-modal-actions .btn-secondary{ flex:1; }
+.random-modal-actions .btn-record{ flex:1; margin-top:0; }
+
+/* ---------- Form panel ---------- */
+.panel{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:20px;
+  margin-bottom:20px;
+}
+.panel-label{
+  font-family:'Oswald', sans-serif;
+  font-size:12px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--text-dim);
+  margin-bottom:14px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.grid{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap:12px;
+}
+.grid2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.grid3{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:10px;
+  margin-top:8px;
+}
+.duration-group-label{
+  font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase; color:var(--text-dim);
+  margin-top:16px; margin-bottom:2px;
+}
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field label{
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--text-dim);
+}
+.field input, .field textarea, .field select{
+  background:#0e1216;
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:var(--text);
+  font-family:'JetBrains Mono', monospace;
+  font-size:14px;
+  padding:9px 10px;
+  outline:none;
+  width:100%;
+}
+.field input:focus, .field textarea:focus, .field select:focus{ border-color:var(--tape); }
+.field textarea{ resize:vertical; min-height:40px; }
+.full-row{ margin-top:12px; }
+.field input:disabled{ opacity:0.35; cursor:not-allowed; }
+
+.serie-row{ display:flex; gap:6px; }
+.serie-row input{ flex:1; min-width:0; }
+.cover-mini-btn{
+  flex-shrink:0;
+  width:36px;
+  background:#0e1216;
+  border:1px solid var(--line);
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+}
+.cover-mini-btn:hover{ border-color:var(--tape); }
+
+.star-picker{ display:flex; gap:4px; align-items:center; padding:6px 0 2px; }
+.star-picker button{
+  background:none; border:none; cursor:pointer;
+  font-size:20px; line-height:1; padding:0; color:var(--line);
+  transition:color .1s ease;
+}
+.star-picker button.on{ color:var(--star); }
+.star-picker .clear-star{
+  font-size:10px; color:var(--text-dim); letter-spacing:1px;
+  margin-left:6px; cursor:pointer; text-decoration:underline; text-transform:uppercase;
+}
+
+.checkbox-row{ display:flex; align-items:center; gap:8px; margin-top:12px; }
+.checkbox-row input[type="checkbox"]{ width:15px; height:15px; accent-color:var(--tape); cursor:pointer; }
+.checkbox-row label{ font-size:11.5px; color:var(--text-dim); cursor:pointer; letter-spacing:0.3px; text-transform:none; }
+.checkbox-row-inline{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-dim); cursor:pointer; }
+.checkbox-row-inline input[type="checkbox"]{ width:14px; height:14px; accent-color:var(--rewatch); cursor:pointer; }
+
+.btn-record{
+  margin-top:16px;
+  width:100%;
+  background:var(--rec);
+  border:none;
+  color:#fff;
+  font-family:'Oswald', sans-serif;
+  font-weight:600;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  font-size:13px;
+  padding:12px;
+  border-radius:6px;
+  cursor:pointer;
+  transition:filter .15s ease, transform .05s ease;
+}
+.btn-record:hover{ filter:brightness(1.1); }
+.btn-record:active{ transform:scale(0.99); }
+.btn-record:disabled{ opacity:0.5; cursor:not-allowed; }
+.btn-record.movie{ background:var(--rewatch); }
+.error-msg{ color:var(--rec); font-size:12px; margin-top:8px; display:none; }
+
+.btn-secondary{
+  width:100%;
+  background:none;
+  border:1px solid var(--rewatch);
+  color:var(--rewatch);
+  font-family:'Oswald', sans-serif;
+  font-weight:600;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  font-size:12px;
+  padding:9px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.btn-secondary:hover{ background:rgba(167,139,250,0.1); }
+
+.bulk-panel{ border-color:var(--rewatch); }
+.bulk-toolbar{
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  margin:16px 0 10px; padding-top:14px; border-top:1px dashed var(--line);
+}
+.bulk-fill-date{ display:flex; align-items:center; gap:6px; }
+.bulk-fill-date input{
+  background:#0e1216; border:1px solid var(--line); border-radius:6px;
+  color:var(--text); font-family:'JetBrains Mono', monospace; font-size:12px; padding:6px 8px;
+}
+.btn-mini{
+  background:none; border:1px solid var(--line); color:var(--text-dim);
+  font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase;
+  padding:6px 9px; border-radius:6px; cursor:pointer; white-space:nowrap;
+}
+.btn-mini:hover{ border-color:var(--rewatch); color:var(--rewatch); }
+.btn-mini.start{ border-color:var(--tape); color:var(--tape); }
+.btn-mini.start:hover{ background:rgba(74,222,128,0.1); }
+.btn-mini.save{ border-color:var(--tape); color:var(--tape); }
+.btn-mini.save:hover{ background:rgba(74,222,128,0.1); }
+
+.bulk-header-row{
+  display:grid; grid-template-columns: 55px 130px 100px 1fr 34px; gap:8px;
+  font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim);
+  padding:0 2px 6px;
+}
+.bulk-row{
+  display:grid; grid-template-columns: 55px 130px 100px 1fr 34px; gap:8px;
+  align-items:center; margin-bottom:6px;
+}
+.bulk-ep{ font-size:12px; color:var(--amber); font-weight:700; }
+.bulk-row input, .bulk-row select{
+  background:#0e1216; border:1px solid var(--line); border-radius:6px;
+  color:var(--text); font-family:'JetBrains Mono', monospace; font-size:12px;
+  padding:7px 6px; width:100%; outline:none;
+}
+.bulk-row input:disabled{ opacity:0.35; }
+.bulk-row input:focus, .bulk-row select:focus{ border-color:var(--rewatch); }
+.bulk-row input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--rewatch); cursor:pointer; }
+
+@media (max-width:560px){
+  .bulk-header-row{ display:none; }
+  .bulk-row{
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "ep rewatch" "date date" "rating rating" "note note";
+    border-bottom:1px dashed var(--line); padding-bottom:10px;
+  }
+  .bulk-ep{ grid-area:ep; }
+  .bulk-row input[type="checkbox"]{ grid-area:rewatch; justify-self:end; }
+  .bulk-row input.bulk-date{ grid-area:date; }
+  .bulk-row select{ grid-area:rating; }
+  .bulk-row input.bulk-note{ grid-area:note; }
+}
+
+/* ---------- Pending panels ---------- */
+.pending-panel{ border-color:var(--amber); }
+.pending-add-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.pending-add-row input{
+  background:#0e1216; border:1px solid var(--line); border-radius:6px;
+  color:var(--text); font-family:'JetBrains Mono', monospace; font-size:13px;
+  padding:9px 10px; outline:none;
+}
+.pending-add-row input.p-name{ flex:1 1 160px; }
+.pending-add-row input.p-note{ flex:2 1 220px; }
+.pending-add-row input:focus{ border-color:var(--amber); }
+.pending-add-btn{ flex:0 0 auto; width:auto; padding:9px 16px; border-color:var(--amber); color:var(--amber); }
+.pending-add-btn:hover{ background:rgba(240,168,64,0.1); }
+
+.pending-list{ margin-top:14px; }
+.pending-item{
+  background:var(--bg-card);
+  border:1px solid var(--line);
+  border-left:3px solid var(--amber);
+  border-radius:6px;
+  padding:10px 12px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-bottom:8px;
+}
+.pending-info{ min-width:0; }
+.pending-name{ font-size:13px; font-weight:700; color:var(--text); }
+.pending-note{ font-size:11.5px; color:var(--text-dim); font-style:italic; margin-top:2px; overflow-wrap:anywhere; }
+.pending-actions{ display:flex; gap:6px; flex-shrink:0; }
+.pending-empty{
+  text-align:center; color:var(--text-dim); font-size:12px;
+  padding:16px; border:1px dashed var(--line); border-radius:8px;
+}
+
+/* ---------- Toolbar ---------- */
+.toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+.toolbar input[type="text"]{
+  flex:1 1 200px;
+  background:var(--bg-panel); border:1px solid var(--line); border-radius:6px;
+  color:var(--text); font-family:'JetBrains Mono', monospace; font-size:13px;
+  padding:10px 12px; outline:none;
+}
+.toolbar input[type="text"]:focus{ border-color:var(--tape); }
+.toolbar select{
+  background:var(--bg-panel); border:1px solid var(--line); border-radius:6px;
+  color:var(--text); font-family:'JetBrains Mono', monospace; font-size:12px;
+  padding:10px 8px; outline:none;
+}
+
+/* ---------- Log list ---------- */
+.log-label{
+  font-family:'Oswald', sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--text-dim); margin:6px 0 14px 2px;
+}
+.series-group{ margin-bottom:22px; }
+.series-header{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-bottom:8px; padding:6px 8px 6px 2px; border-radius:6px;
+  flex-wrap:wrap; cursor:pointer; user-select:none; transition:background .12s ease;
+}
+.series-header:hover{ background:rgba(255,255,255,0.03); }
+.series-chevron{
+  display:inline-block; font-size:11px; color:var(--text-dim);
+  transition:transform .15s ease; margin-right:2px;
+}
+.series-chevron.open{ transform:rotate(90deg); }
+.series-cover{
+  width:30px; height:30px; border-radius:6px;
+  background-size:cover; background-position:center;
+  background-color:var(--bg-card); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0; cursor:pointer;
+}
+.series-cover.empty{ border-style:dashed; opacity:0.6; }
+.series-cover.empty:hover{ opacity:1; border-color:var(--tape); }
+.remove-cover{
+  font-size:10px; color:var(--text-dim); cursor:pointer; padding:2px 5px; border-radius:4px;
+}
+.remove-cover:hover{ color:var(--rec); background:rgba(232,67,46,0.08); }
+.series-name{
+  font-family:'Oswald', sans-serif; font-size:16px; font-weight:600; color:var(--text);
+  display:flex; align-items:center; gap:8px;
+}
+.series-name .badge{
+  font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--bg);
+  background:var(--tape); padding:2px 7px; border-radius:20px; font-weight:700;
+}
+.status-toggle{
+  font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase;
+  padding:4px 10px; border-radius:20px; cursor:pointer; border:1px solid var(--line); background:none;
+  white-space:nowrap;
+}
+.status-toggle.curso{ color:var(--amber); border-color:var(--amber); }
+.status-toggle.terminada{ color:var(--tape); border-color:var(--tape); }
+.status-toggle.rewatch{ color:var(--rewatch); border-color:var(--rewatch); }
+.entries-collapse{ display:none; padding-left:4px; }
+.entries-collapse.open{ display:block; }
+
+/* ---------- Genre / type tags ---------- */
+.tag-pill{
+  font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.5px;
+  padding:4px 9px; border-radius:20px; border:1px solid var(--line); color:var(--text-dim);
+  white-space:nowrap; background:none;
+}
+.tag-pill.genre{ border-color:#4aa8e8; color:#4aa8e8; }
+.tag-pill.type-live{ border-color:#e88a4a; color:#e88a4a; }
+.tag-pill.type-animada{ border-color:#c04ae8; color:#c04ae8; }
+.header-tags{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
+/* ---------- Progress bar ---------- */
+.progress-row{
+  display:flex; align-items:center; gap:10px;
+  margin:0 0 10px 2px; padding-right:6px;
+}
+.progress-track{
+  flex:1; height:7px; border-radius:20px;
+  background:linear-gradient(90deg, var(--rec) 0%, var(--amber) 33%, var(--star) 66%, var(--tape) 100%);
+  border:1px solid var(--line); overflow:hidden; position:relative;
+}
+.progress-track.complete{ box-shadow:0 0 6px 1px rgba(74,222,128,0.5); }
+.progress-mask{
+  position:absolute; top:0; right:0; height:100%;
+  background:var(--bg-card);
+  transition:width .25s ease;
+}
+.progress-label{
+  font-size:10.5px; color:var(--text-dim); letter-spacing:0.3px; white-space:nowrap; flex-shrink:0;
+}
+.progress-goal-btn{
+  background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:10px;
+  text-decoration:underline; letter-spacing:0.3px; padding:0; flex-shrink:0;
+}
+.progress-goal-btn:hover{ color:var(--tape); }
+.goal-btn{
+  flex-shrink:0; width:26px; height:26px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:1px dashed var(--line); cursor:pointer; font-size:12px; opacity:0.55;
+}
+.goal-btn:hover{ opacity:1; border-color:var(--tape); }
+.goal-btn.has{ border-style:solid; border-color:var(--tape); opacity:1; }
+.genre-edit-btn{
+  font-size:11px;
+  color:var(--text-dim);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:3px 8px;
+  cursor:pointer;
+  opacity:0.7;
+}
+.genre-edit-btn:hover{ opacity:1; border-color:var(--rewatch); color:var(--rewatch); }
+
+/* ---------- Folder music control ---------- */
+.music-btn{
+  flex-shrink:0; width:26px; height:26px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:1px dashed var(--line); cursor:pointer; font-size:12px; opacity:0.55;
+}
+.music-btn:hover{ opacity:1; border-color:var(--tape); }
+.music-btn.has{ border-style:solid; border-color:var(--tape); opacity:1; }
+.music-playing-indicator{
+  font-size:10px; color:var(--tape); display:flex; align-items:center; gap:4px; letter-spacing:0.5px;
+}
+.music-playing-indicator .dot{
+  width:7px; height:7px; border-radius:50%; background:var(--tape);
+  box-shadow:0 0 6px 2px rgba(74,222,128,0.4); animation:blink 1.1s infinite;
+}
+.remove-music{ font-size:10px; color:var(--text-dim); cursor:pointer; padding:2px 5px; border-radius:4px; }
+.remove-music:hover{ color:var(--rec); background:rgba(232,67,46,0.08); }
+
+.entry-card{
+  background:var(--bg-card); border:1px solid var(--line); border-left:3px solid var(--tape);
+  border-radius:6px; padding:12px 14px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-bottom:8px;
+}
+.entry-card.movie-entry{ border-left-color:var(--rewatch); }
+.entry-left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.entry-tag-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.entry-tag{ font-size:13px; font-weight:700; color:var(--amber); letter-spacing:1px; }
+.entry-stars{ color:var(--star); font-size:12px; letter-spacing:1px; }
+.entry-rewatch{
+  font-size:10px; color:var(--rewatch); border:1px solid var(--rewatch);
+  padding:1px 7px; border-radius:20px; letter-spacing:0.5px;
+}
+.entry-time{ font-size:11px; color:var(--text-dim); }
+.entry-note{ font-size:12px; color:var(--text-dim); font-style:italic; margin-top:2px; overflow-wrap:anywhere; }
+.entry-actions{ display:flex; gap:6px; flex-shrink:0; }
+.del-btn{
+  background:none; border:1px solid var(--line); color:var(--text-dim);
+  width:28px; height:28px; border-radius:6px; cursor:pointer; flex-shrink:0; font-size:14px; line-height:1;
+}
+.del-btn:hover{ border-color:var(--rec); color:var(--rec); }
+
+.entry-card.editing{ display:block; border-left-color:var(--rewatch); }
+.edit-grid{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+.edit-grid.movie-grid{ grid-template-columns:1fr 1fr; }
+.edit-field{ display:flex; flex-direction:column; gap:4px; }
+.edit-field.full{ margin-bottom:10px; }
+.edit-field label{ font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim); }
+.entry-card.editing input, .entry-card.editing select, .entry-card.editing textarea{
+  background:#0e1216; border:1px solid var(--line); border-radius:6px;
+  color:var(--text); font-family:'JetBrains Mono', monospace; font-size:13px;
+  padding:7px 8px; width:100%; outline:none;
+}
+.entry-card.editing select:focus, .entry-card.editing input:focus, .entry-card.editing textarea:focus{ border-color:var(--rewatch); }
+.entry-card.editing textarea{ resize:vertical; min-height:36px; }
+.entry-card.editing input:disabled{ opacity:0.35; }
+.edit-line{ margin-bottom:10px; }
+.edit-actions{ display:flex; gap:8px; margin-top:4px; }
+
+.empty-state{
+  text-align:center; color:var(--text-dim); padding:40px 20px;
+  border:1px dashed var(--line); border-radius:10px; font-size:13px; line-height:1.7;
+}
+.empty-state .big{
+  font-family:'Oswald', sans-serif; font-size:14px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--text); display:block; margin-bottom:6px;
+}
+.loading{ text-align:center; color:var(--text-dim); font-size:12px; padding:30px; letter-spacing:1px; }
+
+.ranking-card{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:6px;
+  padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:8px;
+}
+.ranking-cover{
+  width:44px; height:44px; border-radius:8px; flex-shrink:0;
+  background-size:cover; background-position:center;
+  background-color:var(--bg-panel); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.ranking-cover.empty{ opacity:0.5; }
+.ranking-info{ min-width:0; flex:1; }
+.ranking-title{ font-size:13.5px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.ranking-title .entry-tag{ font-size:11px; margin-left:6px; }
+.rating-badge{
+  font-size:10px; letter-spacing:0.5px; padding:1px 8px; border-radius:20px;
+  border:1px solid var(--line);
+}
+.rating-badge.good{ color:var(--tape); border-color:var(--tape); }
+.rating-badge.meh{ color:var(--amber); border-color:var(--amber); }
+.rating-badge.bad{ color:var(--rec); border-color:var(--rec); }
+
+@media (max-width:520px){
+  .grid{ grid-template-columns:1fr; }
+  .grid2{ grid-template-columns:1fr; }
+  .grid3{ grid-template-columns:1fr; }
+  .deck-title{ font-size:18px; }
+  .edit-grid{ grid-template-columns:1fr 1fr; }
+}
+
+/* ---------- Toast (deshacer) ---------- */
+.toast-container{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  z-index:200; display:flex; flex-direction:column; gap:8px; align-items:center;
+  width:100%; max-width:420px; padding:0 16px;
+}
+.toast{
+  background:#181e25; border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:14px;
+  width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  animation:toastIn .18s ease;
+}
+@keyframes toastIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
+.toast span{ font-size:12.5px; color:var(--text); }
+.toast-undo{
+  background:none; border:1px solid var(--tape); color:var(--tape);
+  font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:700; letter-spacing:0.5px;
+  padding:6px 12px; border-radius:6px; cursor:pointer; white-space:nowrap; flex-shrink:0;
+}
+.toast-undo:hover{ background:rgba(74,222,128,0.12); }
+
+/* ---------- Continuar viendo ---------- */
+.cw-list{ display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
+.cw-card{
+  flex:0 0 auto; width:180px; background:var(--bg-card); border:1px solid var(--line); border-radius:10px;
+  padding:10px; cursor:pointer; transition:border-color .1s ease;
+}
+.cw-card:hover{ border-color:var(--tape); }
+.cw-cover{
+  width:100%; height:80px; border-radius:6px; background-size:cover; background-position:center;
+  background-color:var(--bg-panel); display:flex; align-items:center; justify-content:center; font-size:24px;
+  margin-bottom:8px;
+}
+.cw-name{ font-family:'Oswald', sans-serif; font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cw-last{ font-size:10.5px; color:var(--text-dim); margin-top:3px; }
+.cw-empty{ font-size:12px; color:var(--text-dim); font-style:italic; }
+
+/* ---------- Antigüedad pendientes ---------- */
+.pending-age{ font-size:10px; color:var(--text-dim); margin-top:2px; }
+.pending-age.stale{ color:var(--amber); }
+
+/* ---------- Tendencia mensual ---------- */
+.trend-chart-wrap{ margin-top:18px; }
+.trend-svg{ width:100%; height:auto; display:block; }
+.trend-empty{ font-size:12px; color:var(--text-dim); font-style:italic; padding:10px 0; }
+
+/* ---------- Mapa de géneros ---------- */
+.genre-bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+.genre-bar-name{ width:110px; flex-shrink:0; font-size:11.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.genre-bar-track{ flex:1; height:14px; border-radius:7px; background:var(--bg-card); border:1px solid var(--line); overflow:hidden; }
+.genre-bar-fill{ height:100%; border-radius:7px 0 0 7px; background:linear-gradient(90deg,#4aa8e8,#a78bfa); }
+.genre-bar-pct{ width:56px; flex-shrink:0; font-size:11px; color:var(--text-dim); text-align:right; }
+
+/* ---------- Logros ---------- */
+.achievements-summary{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+}
+.achv-summary-big{ font-family:'Oswald', sans-serif; font-size:22px; font-weight:700; color:var(--star); }
+.achv-summary-big small{ display:block; font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--text-dim); font-weight:400; }
+.achv-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+@media (max-width:520px){ .achv-grid{ grid-template-columns:1fr; } }
+.achv-card{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:12px; padding:14px;
+  display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden;
+}
+.achv-card.locked{ opacity:0.55; }
+.achv-card.unlocked{ border-color:var(--star); }
+.achv-top{ display:flex; align-items:flex-start; gap:10px; }
+.achv-icon{
+  width:42px; height:42px; border-radius:10px; background:var(--bg-panel);
+  display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+}
+.achv-card.unlocked .achv-icon{ background:rgba(240,200,64,0.15); }
+.achv-name{ font-family:'Oswald', sans-serif; font-size:14.5px; font-weight:600; color:var(--text); }
+.achv-tier-label{ font-size:9.5px; letter-spacing:0.5px; text-transform:uppercase; color:var(--star); margin-top:1px; }
+.achv-desc{ font-size:11.5px; color:var(--text-dim); line-height:1.4; }
+.achv-progress-track{ height:6px; border-radius:4px; background:var(--bg-panel); border:1px solid var(--line); overflow:hidden; margin-top:2px; }
+.achv-progress-fill{ height:100%; background:var(--star); border-radius:4px; }
+.achv-progress-label{ font-size:10px; color:var(--text-dim); }
+.achv-badge-tiers{ display:flex; gap:4px; position:absolute; top:12px; right:12px; }
+.achv-badge-dot{ width:7px; height:7px; border-radius:50%; background:var(--line); }
+.achv-badge-dot.on{ background:var(--star); }
+
+/* ---------- Ajustes de tiempo (duración promedio) ---------- */
+.settings-row{ display:flex; gap:8px; margin-top:10px; }
+.settings-row .field{ flex:1; }
+.settings-row .field label{ font-size:9.5px; }
+.settings-row .field input{ padding:7px 8px; font-size:12.5px; }
+
+/* ---------- Descargar slide de Wrapped ---------- */
+.wrapped-download-btn{
+  position:absolute; top:14px; left:14px; background:none; border:1px solid rgba(255,255,255,0.25);
+  color:rgba(255,255,255,0.85); border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;
+  font-family:'JetBrains Mono', monospace; letter-spacing:0.3px;
+}
+.wrapped-download-btn:hover{ border-color:#fff; color:#fff; }
+
+/* ---------- Google Drive sync ---------- */
+.drive-row{ display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.drive-status{
+  font-size:10.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px; flex:1;
+}
+.drive-status .dot{ width:7px; height:7px; border-radius:50%; background:var(--text-dim); flex-shrink:0; }
+.drive-status.connected .dot{ background:var(--tape); }
+.drive-status.syncing .dot{ background:var(--amber); animation:blink 1s infinite; }
+.drive-status.error .dot{ background:var(--rec); }
+.drive-btn{
+  background:none; border:1px solid var(--line); color:var(--text-dim);
+  font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.3px;
+  padding:8px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;
+}
+.drive-btn:hover{ border-color:#4285F4; color:#4285F4; }
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="deck">
+    <div class="deck-top">
+      <div class="deck-title">Bitácora</div>
+      <div class="rec-indicator"><span class="rec-dot"></span>REC</div>
+    </div>
+    <div class="deck-counter">
+      <div>EPISODIOS: <b id="statEpisodes">0</b></div>
+      <div>SERIES: <b id="statSeries">0</b></div>
+      <div>PELÍCULAS: <b id="statMovies">0</b></div>
+      <div>PENDIENTES: <b id="statAllPending">0</b></div>
+      <div>ÚLTIMA SESIÓN: <b id="statLast">—</b></div>
+    </div>
+    <button class="wrapped-trigger" id="btnOpenWrapped">✨ Ver mi Wrapped</button>
+    <div class="backup-row">
+      <button class="backup-btn" id="btnExportBackup">💾 Exportar backup</button>
+      <button class="backup-btn" id="btnRestoreBackup">📂 Restaurar backup</button>
+    </div>
+    <div class="backup-row">
+      <button class="backup-btn" id="btnOpenDurationSettings">⏱️ Duración promedio por tipo</button>
+    </div>
+    <div class="drive-row">
+      <div class="drive-status" id="driveStatus"><span class="dot"></span><span id="driveStatusText">Google Drive: no conectado</span></div>
+      <button class="drive-btn" id="btnConnectDrive">🔗 Conectar Google Drive</button>
+      <button class="drive-btn" id="btnSyncDriveNow" style="display:none;">🔄 Sincronizar ahora</button>
+    </div>
+  </div>
+
+  <div class="panel continue-watching" id="continueWatchingPanel" style="display:none;">
+    <div class="panel-label">▶ Continuar viendo</div>
+    <div class="cw-list" id="continueWatchingList"></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabBtnSeries" onclick="switchMainTab('series')">📺 Series</button>
+    <button class="tab-btn movies-tab" id="tabBtnMovies" onclick="switchMainTab('peliculas')">🎬 Películas</button>
+    <button class="tab-btn rankings-tab" id="tabBtnRankings" onclick="switchMainTab('rankings')">🏆 Rankings</button>
+    <button class="tab-btn activity-tab" id="tabBtnActivity" onclick="switchMainTab('activity')">📅 Actividad</button>
+    <button class="tab-btn achievements-tab" id="tabBtnAchievements" onclick="switchMainTab('achievements')">🏅 Logros</button>
+  </div>
+
+  <!-- ================= TAB: SERIES ================= -->
+  <div id="tabSeries">
+    <div class="subtab-bar">
+      <button class="subtab-btn active" id="subBtnSeriesLog" onclick="switchSeriesSub('log')">📖 Mi registro</button>
+      <button class="subtab-btn" id="subBtnSeriesPending" onclick="switchSeriesSub('pending')">📌 Pendientes <span class="subtab-count" id="pendingCount">0</span></button>
+      <button class="subtab-btn random-btn" id="btnRandomPick" onclick="openRandomModal()">🎲 Selección aleatoria</button>
+    </div>
+
+    <div id="seriesLogView">
+      <div class="panel">
+        <div class="panel-label">Registrar visionado</div>
+        <div class="grid">
+          <div class="field">
+            <label for="fSerie">Serie</label>
+            <input id="fSerie" type="text" placeholder="Serie" autocomplete="off" list="serieList">
+            <datalist id="serieList"></datalist>
+          </div>
+          <div class="field">
+            <label for="fTemp">Temporada</label>
+            <input id="fTemp" type="number" min="0" placeholder="1">
+          </div>
+          <div class="field">
+            <label for="fCap">Capítulo</label>
+            <input id="fCap" type="number" min="0" placeholder="0">
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="field">
+            <label for="fGenero">Género</label>
+            <select id="fGenero"></select>
+          </div>
+          <div class="field">
+            <label for="fTipo">Tipo</label>
+            <select id="fTipo">
+              <option value="">Sin especificar</option>
+              <option value="live">🎬 Live action</option>
+              <option value="animada">🖼️ Animada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fDuracion">Duración/cap. (min)</label>
+            <input id="fDuracion" type="number" min="1" placeholder="Ej: 24">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="fFecha">Fecha</label>
+            <input id="fFecha" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)">
+          </div>
+          <div class="field">
+            <label for="fHora">Hora</label>
+            <input id="fHora" type="time">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="fDateUnknown">
+          <label for="fDateUnknown">No recuerdo la fecha/hora exacta</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="fRewatch">
+          <label for="fRewatch">🔁 Ya había visto este capítulo (rewatch)</label>
+        </div>
+        <div class="field full-row">
+          <label>Calificación (opcional)</label>
+          <div class="star-picker" id="starPicker">
+            <button type="button" data-v="1">★</button>
+            <button type="button" data-v="2">★</button>
+            <button type="button" data-v="3">★</button>
+            <button type="button" data-v="4">★</button>
+            <button type="button" data-v="5">★</button>
+            <span class="clear-star" id="clearStar">quitar</span>
+          </div>
+        </div>
+        <div class="field full-row">
+          <label for="fNota">Nota (opcional)</label>
+          <textarea id="fNota" placeholder="Impresiones, spoilers para ti mismo, lo que sea..."></textarea>
+        </div>
+        <button class="btn-record" id="btnAdd">● Registrar episodio</button>
+        <div class="error-msg" id="errMsg">Escribe al menos el nombre de la serie.</div>
+      </div>
+
+      <div class="panel bulk-panel">
+        <div class="panel-label">⚡ Carga rápida (series que ya viste completas)</div>
+        <div class="grid">
+          <div class="field">
+            <label for="bSerie">Serie</label>
+            <div class="serie-row">
+              <input id="bSerie" type="text" placeholder="Serie" autocomplete="off" list="serieList">
+              <button type="button" class="cover-mini-btn" id="btnBulkCover" title="Elegir portada para esta serie">🖼️</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="bTemp">Temporada</label>
+            <input id="bTemp" type="number" min="0" placeholder="1">
+          </div>
+          <div class="field">
+            <label for="bDesde">Desde cap.</label>
+            <input id="bDesde" type="number" min="1" placeholder="1">
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="field">
+            <label for="bGenero">Género</label>
+            <select id="bGenero"></select>
+          </div>
+          <div class="field">
+            <label for="bTipo">Tipo</label>
+            <select id="bTipo">
+              <option value="">Sin especificar</option>
+              <option value="live">🎬 Live action</option>
+              <option value="animada">🖼️ Animada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bDuracion">Duración/cap. (min)</label>
+            <input id="bDuracion" type="number" min="1" placeholder="Ej: 24">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="bHasta">Hasta cap.</label>
+            <input id="bHasta" type="number" min="1" placeholder="12">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button type="button" class="btn-secondary" id="btnGenerateBulk">Generar filas de capítulos</button>
+          </div>
+        </div>
+        <div class="error-msg" id="bulkErrMsg">Revisa la serie y el rango de capítulos.</div>
+
+        <div id="bulkRowsWrap" style="display:none;">
+          <div class="bulk-toolbar">
+            <label class="checkbox-row-inline"><input type="checkbox" id="bAllUnknownDate"> Todos sin fecha</label>
+            <div class="bulk-fill-date">
+              <input type="text" id="bFillDate" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)">
+              <button type="button" id="btnFillDate" class="btn-mini">Aplicar fecha a todos</button>
+            </div>
+            <label class="checkbox-row-inline"><input type="checkbox" id="bAllRewatch"> 🔁 Todos como rewatch</label>
+          </div>
+          <div class="bulk-header-row">
+            <span>Cap.</span><span>Fecha</span><span>Calificación</span><span>Nota</span><span>🔁</span>
+          </div>
+          <div id="bulkRows"></div>
+          <button class="btn-record" id="btnSaveBulk">● Guardar todos los capítulos</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="fSearch" placeholder="Buscar serie...">
+        <select id="fStatusFilter">
+          <option value="todas">Todas</option>
+          <option value="curso">En curso</option>
+          <option value="rewatch">Repitiendo</option>
+          <option value="terminada">Terminadas</option>
+        </select>
+        <select id="fGenreFilter">
+          <option value="todos">Todos los géneros</option>
+        </select>
+        <select id="fTypeFilter">
+          <option value="todos">Todos los tipos</option>
+          <option value="live">🎬 Live action</option>
+          <option value="animada">🖼️ Animada</option>
+        </select>
+        <select id="fSortFilter">
+          <option value="reciente">Ordenar: Última vista</option>
+          <option value="nombre">Ordenar: Nombre (A-Z)</option>
+          <option value="calificacion">Ordenar: Mejor calificada</option>
+        </select>
+      </div>
+
+      <div class="log-label">Registro</div>
+      <div id="logContainer"><div class="loading">Cargando bitácora...</div></div>
+    </div>
+
+    <div id="seriesPendingView" style="display:none;">
+      <div class="panel pending-panel">
+        <div class="panel-label">📌 Series pendientes por ver</div>
+        <div class="pending-add-row">
+          <input type="text" id="pName" class="p-name" placeholder="Nombre de la serie" autocomplete="off">
+          <input type="text" id="pNote" class="p-note" placeholder="Nota (opcional: quién me la recomendó, por qué...)">
+          <button type="button" class="btn-secondary pending-add-btn" id="btnAddPending">+ Agregar</button>
+        </div>
+        <div class="pending-list" id="pendingList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: PELÍCULAS ================= -->
+  <div id="tabMovies" style="display:none;">
+    <div class="subtab-bar">
+      <button class="subtab-btn active" id="subBtnMoviesLog" onclick="switchMovieSub('log')">🎬 Vistas</button>
+      <button class="subtab-btn" id="subBtnMoviesPending" onclick="switchMovieSub('pending')">📌 Pendientes <span class="subtab-count" id="moviePendingCount">0</span></button>
+    </div>
+
+    <div id="movieLogView">
+      <div class="panel">
+        <div class="panel-label">Registrar película</div>
+        <div class="grid">
+          <div class="field" style="grid-column: span 3;">
+            <label for="mTitle">Título</label>
+            <div class="serie-row">
+              <input id="mTitle" type="text" placeholder="Título de la película" autocomplete="off" list="movieList">
+              <button type="button" class="cover-mini-btn" id="btnMovieCover" title="Elegir portada/póster">🖼️</button>
+            </div>
+            <datalist id="movieList"></datalist>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="field">
+            <label for="mGenero">Género</label>
+            <select id="mGenero"></select>
+          </div>
+          <div class="field">
+            <label for="mTipo">Tipo</label>
+            <select id="mTipo">
+              <option value="">Sin especificar</option>
+              <option value="live">🎬 Live action</option>
+              <option value="animada">🖼️ Animada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="mDuracion">Duración (min)</label>
+            <input id="mDuracion" type="number" min="1" placeholder="Ej: 110">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="mFecha">Fecha</label>
+            <input id="mFecha" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)">
+          </div>
+          <div class="field">
+            <label for="mHora">Hora</label>
+            <input id="mHora" type="time">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="mDateUnknown">
+          <label for="mDateUnknown">No recuerdo la fecha/hora exacta</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="mRewatch">
+          <label for="mRewatch">🔁 Ya la había visto (rewatch)</label>
+        </div>
+        <div class="field full-row">
+          <label>Calificación (opcional)</label>
+          <div class="star-picker" id="movieStarPicker">
+            <button type="button" data-v="1">★</button>
+            <button type="button" data-v="2">★</button>
+            <button type="button" data-v="3">★</button>
+            <button type="button" data-v="4">★</button>
+            <button type="button" data-v="5">★</button>
+            <span class="clear-star" id="movieClearStar">quitar</span>
+          </div>
+        </div>
+        <div class="field full-row">
+          <label for="mNota">Nota (opcional)</label>
+          <textarea id="mNota" placeholder="Impresiones, lo que sea..."></textarea>
+        </div>
+        <button class="btn-record movie" id="btnAddMovie">● Registrar película</button>
+        <div class="error-msg" id="movieErrMsg">Escribe al menos el título de la película.</div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="mSearch" placeholder="Buscar película...">
+        <select id="mGenreFilter">
+          <option value="todos">Todos los géneros</option>
+        </select>
+        <select id="mTypeFilter">
+          <option value="todos">Todos los tipos</option>
+          <option value="live">🎬 Live action</option>
+          <option value="animada">🖼️ Animada</option>
+        </select>
+        <select id="mSortFilter">
+          <option value="reciente">Ordenar: Última vista</option>
+          <option value="nombre">Ordenar: Nombre (A-Z)</option>
+          <option value="calificacion">Ordenar: Mejor calificada</option>
+        </select>
+      </div>
+
+      <div class="log-label">Registro</div>
+      <div id="movieLogContainer"><div class="loading">Cargando bitácora...</div></div>
+    </div>
+
+    <div id="moviePendingView" style="display:none;">
+      <div class="panel pending-panel">
+        <div class="panel-label">📌 Películas pendientes por ver</div>
+        <div class="pending-add-row">
+          <input type="text" id="pmName" class="p-name" placeholder="Título de la película" autocomplete="off">
+          <input type="text" id="pmNote" class="p-note" placeholder="Nota (opcional)">
+          <button type="button" class="btn-secondary pending-add-btn" id="btnAddMoviePending">+ Agregar</button>
+        </div>
+        <div class="pending-list" id="moviePendingList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: RANKINGS ================= -->
+  <div id="tabRankings" style="display:none;">
+    <div class="subtab-bar">
+      <button class="subtab-btn active" id="subBtnRankSeries" onclick="switchRankingSub('series')">📺 Series</button>
+      <button class="subtab-btn" id="subBtnRankMovies" onclick="switchRankingSub('movies')">🎬 Películas</button>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="rankSearch" placeholder="Buscar en rankings...">
+      <select id="rankGenreFilter">
+        <option value="todos">Todos los géneros</option>
+      </select>
+    </div>
+
+    <div id="rankSeriesView">
+      <div class="log-label">🏆 Top 10 mejor calificados</div>
+      <div id="rankSeriesBest"></div>
+      <div class="log-label">💀 Top 10 peor calificados</div>
+      <div id="rankSeriesWorst"></div>
+    </div>
+
+    <div id="rankMoviesView" style="display:none;">
+      <div class="log-label">🏆 Top 10 mejor calificadas</div>
+      <div id="rankMoviesBest"></div>
+      <div class="log-label">💀 Top 10 peor calificadas</div>
+      <div id="rankMoviesWorst"></div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: ACTIVIDAD ================= -->
+  <div id="tabActivity" style="display:none;">
+    <div class="panel">
+      <div class="activity-header">
+        <div class="activity-year-nav">
+          <button type="button" class="activity-year-btn" id="activityPrevYear" title="Año anterior">‹</button>
+          <span class="activity-year-label" id="activityYearLabel">—</span>
+          <button type="button" class="activity-year-btn" id="activityNextYear" title="Año siguiente">›</button>
+        </div>
+        <div class="activity-total" id="activityTotal"></div>
+      </div>
+      <div class="activity-scroll">
+        <div class="activity-months" id="activityMonths"></div>
+        <div class="activity-row">
+          <div class="activity-daylabels">
+            <span></span><span>Lun</span><span></span><span>Mié</span><span></span><span>Vie</span><span></span>
+          </div>
+          <div class="activity-body" id="activityGrid"></div>
+        </div>
+      </div>
+      <div class="activity-legend">
+        Menos
+        <span class="activity-day"></span>
+        <span class="activity-day level-1"></span>
+        <span class="activity-day level-2"></span>
+        <span class="activity-day level-3"></span>
+        <span class="activity-day level-4"></span>
+        Más
+      </div>
+      <div class="activity-detail" id="activityDetail">
+        <div class="activity-detail-empty">Toca un día del mapa para ver qué viste esa fecha.</div>
+      </div>
+
+      <div class="trend-chart-wrap">
+        <div class="log-label">📈 Tendencia mensual</div>
+        <div id="trendChartContainer"></div>
+      </div>
+
+      <div class="trend-chart-wrap">
+        <div class="log-label">🎭 Géneros más vistos <span style="text-transform:none; font-weight:400; opacity:0.7;">(del año seleccionado arriba)</span></div>
+        <div id="genreBreakdownContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: LOGROS ================= -->
+  <div id="tabAchievements" style="display:none;">
+    <div class="panel">
+      <div class="achievements-summary" id="achievementsSummary"></div>
+    </div>
+    <div class="achv-grid" id="achievementsGrid"></div>
+  </div>
+
+  <div class="modal-overlay" id="wrappedYearOverlay" style="display:none;">
+    <div class="modal-card">
+      <button class="wrapped-close" id="wrappedYearClose" title="Cerrar">✕</button>
+      <div class="panel-label">✨ ¿Wrapped de qué año?</div>
+      <div class="wrapped-year-list" id="wrappedYearList"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="durationModalOverlay" style="display:none;">
+    <div class="modal-card">
+      <button class="wrapped-close" id="durationModalClose" title="Cerrar">✕</button>
+      <div class="panel-label">⏱️ Duración promedio por tipo</div>
+      <div style="font-size:11.5px; color:var(--text-dim); margin:-4px 0 14px;">
+        Se usa para estimar las horas vistas en tu Wrapped. Los animes suelen durar menos que las series live action, así que puedes ajustarlos por separado.
+      </div>
+      <div class="duration-group-label">📺 Capítulos</div>
+      <div class="grid3">
+        <div class="field">
+          <label for="durEpisodeLive">🎬 Live action</label>
+          <input type="number" id="durEpisodeLive" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="durEpisodeAnimada">🖼️ Animada</label>
+          <input type="number" id="durEpisodeAnimada" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="durEpisodeDefault">Sin especificar</label>
+          <input type="number" id="durEpisodeDefault" min="1" step="1">
+        </div>
+      </div>
+      <div class="duration-group-label">🎬 Películas</div>
+      <div class="grid3">
+        <div class="field">
+          <label for="durMovieLive">🎬 Live action</label>
+          <input type="number" id="durMovieLive" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="durMovieAnimada">🖼️ Animada</label>
+          <input type="number" id="durMovieAnimada" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="durMovieDefault">Sin especificar</label>
+          <input type="number" id="durMovieDefault" min="1" step="1">
+        </div>
+      </div>
+      <button class="btn-record" id="durationModalSave" style="margin-top:18px;">✔ Guardar</button>
+    </div>
+  </div>
+
+  <div class="wrapped-overlay" id="wrappedOverlay" style="display:none;">
+    <div class="wrapped-card" id="wrappedCard">
+      <button class="wrapped-download-btn" id="wrappedDownload" title="Descargar esta slide como imagen">⤓ PNG</button>
+      <button class="wrapped-close" id="wrappedClose" title="Cerrar">✕</button>
+      <div class="wrapped-dots" id="wrappedDots"></div>
+      <div class="wrapped-body">
+        <div class="wrapped-icon" id="wrappedIcon">🎬</div>
+        <div class="wrapped-eyebrow" id="wrappedEyebrow"></div>
+        <div class="wrapped-big" id="wrappedBig"></div>
+        <div class="wrapped-sub" id="wrappedSub"></div>
+        <div class="wrapped-music-note" id="wrappedMusicNote" style="display:none;"></div>
+      </div>
+      <div class="wrapped-nav">
+        <button class="wrapped-nav-btn" id="wrappedPrev">← Atrás</button>
+        <button class="wrapped-nav-btn primary" id="wrappedNext">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="genreModalOverlay" style="display:none;">
+    <div class="modal-card">
+      <button class="wrapped-close" id="genreModalClose" title="Cerrar">✕</button>
+      <div class="panel-label" id="genreModalTitle">Género y tipo</div>
+      <div class="genre-check-grid" id="genreCheckGrid"></div>
+      <div class="field full-row">
+        <label for="genreModalType">Tipo</label>
+        <select id="genreModalType">
+          <option value="">Sin especificar</option>
+          <option value="live">🎬 Live action</option>
+          <option value="animada">🖼️ Animada</option>
+        </select>
+      </div>
+      <div class="field full-row">
+        <label for="genreModalDuration" id="genreModalDurationLabel">Duración por episodio (min)</label>
+        <input type="number" id="genreModalDuration" min="1" placeholder="Dejar vacío = usar el promedio general">
+      </div>
+      <button class="btn-record" id="genreModalSave" style="margin-top:18px;">✔ Guardar</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="randomModalOverlay" style="display:none;">
+    <div class="modal-card">
+      <button class="wrapped-close" id="randomModalClose" title="Cerrar">✕</button>
+      <div class="panel-label">🎲 Selección aleatoria</div>
+      <div id="randomModalBody"></div>
+      <label class="checkbox-row-inline" style="margin-top:16px;">
+        <input type="checkbox" id="randomIncludePending">
+        ¿Incluir series de la lista de Pendientes en la selección aleatoria?
+      </label>
+      <div class="random-modal-actions">
+        <button type="button" class="btn-secondary" id="randomRetryBtn">🔁 Intentar de nuevo</button>
+        <button type="button" class="btn-record" id="randomActionBtn" style="display:none;">▶ Empezar a verla</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="coverFileInput" accept="image/*" style="display:none">
+  <input type="file" id="movieCoverFileInput" accept="image/*" style="display:none">
+  <input type="file" id="audioFileInput" accept="audio/*" style="display:none">
+  <input type="file" id="movieAudioFileInput" accept="audio/*" style="display:none">
+  <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none">
+
+</div>
+
+<script>
+const DATA_KEY = 'bitacora-series-data';
+const OLD_KEY = 'bitacora-series-entries';
+
+let entries = [];        // episodios de series
+let status = {};         // { serieKeyLower: 'curso'|'terminada'|'rewatch' }
+let covers = {};         // { serieKeyLower: dataURL }
+let pending = [];        // [{id, serie, note}]
+let genres = {};         // { serieKeyLower: 'Acción'|... }
+let types = {};          // { serieKeyLower: 'live'|'animada' }
+let folderMusic = {};    // { serieKeyLower: {name, dataUrl} }
+let seriesGoals = {};    // { serieKeyLower: totalEpisodios (number) }
+let seriesDuration = {}; // { serieKeyLower: minutosPorEpisodio (number) } — pisa el promedio general por tipo
+
+let movieEntries = [];   // { id, title, date, time, rating, rewatch, note }
+let movieCovers = {};    // { titleKeyLower: dataURL }
+let moviePending = [];   // [{id, title, note}]
+let movieGenres = {};    // { titleKeyLower: 'Acción'|... }
+let movieTypes = {};     // { titleKeyLower: 'live'|'animada' }
+let movieFolderMusic = {}; // { titleKeyLower: {name, dataUrl} }
+let movieDuration = {};  // { titleKeyLower: minutos (number) } — pisa el promedio general por tipo
+const DEFAULT_SETTINGS = {
+  episodeLive: 45, episodeAnimada: 24, episodeDefault: 30,
+  movieLive: 110, movieAnimada: 90, movieDefault: 100
+};
+function normalizeSettings(raw){
+  const s = Object.assign({}, DEFAULT_SETTINGS, raw || {});
+  // Migración desde la versión anterior (un solo promedio para todo)
+  if(raw && raw.avgEpisodeMinutes && !raw.episodeLive && !raw.episodeAnimada){
+    s.episodeLive = raw.avgEpisodeMinutes;
+    s.episodeAnimada = raw.avgEpisodeMinutes;
+    s.episodeDefault = raw.avgEpisodeMinutes;
+  }
+  if(raw && raw.avgMovieMinutes && !raw.movieLive && !raw.movieAnimada){
+    s.movieLive = raw.avgMovieMinutes;
+    s.movieAnimada = raw.avgMovieMinutes;
+    s.movieDefault = raw.avgMovieMinutes;
+  }
+  return s;
+}
+let settings = normalizeSettings();
+
+const GENRES = ['Acción','Aventura','Comedia','Drama','Terror','Suspenso','Ciencia Ficción','Fantasía','Romance','Documental','Musical','Otro'];
+const TYPE_LABELS = { live: '🎬 Live action', animada: '🖼️ Animada' };
+
+let pendingMusicSeries = null;
+let pendingMusicMovie = null;
+let currentAudio = null;
+let currentAudioKey = null; // "series:<key>" o "movie:<key>"
+
+let expandedSeries = new Set();
+let expandedMovies = new Set();
+let editingId = null;
+let editingMovieId = null;
+let currentRating = 0;
+let currentMovieRating = 0;
+let pendingCoverSeries = null;
+let pendingCoverMovie = null;
+let activityYear = null;
+let activitySelectedDate = null;
+
+let activeMainTab = 'series';
+let activeSeriesSub = 'log';
+let activeMovieSub = 'log';
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+/* ========================= TOAST / DESHACER ========================= */
+function showUndoToast(message, undoFn, duration = 6000){
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${escapeHtml(message)}</span><button class="toast-undo">Deshacer</button>`;
+  container.appendChild(el);
+  const timeoutId = setTimeout(() => { el.remove(); }, duration);
+  el.querySelector('.toast-undo').addEventListener('click', async () => {
+    clearTimeout(timeoutId);
+    el.remove();
+    await undoFn();
+  });
+}
+function seriesKey(name){ return name.trim().toLowerCase(); }
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+function starString(n){
+  n = parseInt(n) || 0;
+  if(n <= 0) return '';
+  return '★'.repeat(n) + '☆'.repeat(5-n);
+}
+function fmtDate(dateStr, timeStr){
+  if(!dateStr) return 'Fecha desconocida';
+  const [y,m,d] = dateStr.split('-');
+  const dateLabel = `${d}/${m}/${y}`;
+  return timeStr ? `${dateLabel} · ${timeStr}` : dateLabel;
+}
+
+// Los campos de fecha del formulario ahora son texto libre en formato dd/mm/aaaa
+// (los inputs nativos type="date" muestran el formato según el idioma del navegador/sistema,
+// lo cual en muchos casos termina mostrando mm/dd/aaaa aunque la página esté en español).
+// Internamente todo se sigue guardando como aaaa-mm-dd para no romper nada del resto de la app.
+function isoToDisplay(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function displayToIso(disp){
+  disp = (disp || '').trim();
+  if(!disp) return '';
+  const m = disp.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(!m) return '';
+  const d = m[1].padStart(2,'0'), mo = m[2].padStart(2,'0'), y = m[3];
+  return `${y}-${mo}-${d}`;
+}
+function maskDateInput(el){
+  let v = el.value.replace(/[^\d]/g, '').slice(0, 8);
+  let out = '';
+  if(v.length > 0) out = v.slice(0,2);
+  if(v.length >= 3) out += '/' + v.slice(2,4);
+  if(v.length >= 5) out += '/' + v.slice(4,8);
+  el.value = out;
+}
+window.maskDateInput = maskDateInput;
+function sortKeyOf(e){ return `${e.date || ''}T${e.time || '00:00'}`; }
+function avgRatingOf(items){
+  const rated = items.filter(e => e.rating > 0);
+  if(!rated.length) return 0;
+  return rated.reduce((s,e) => s + e.rating, 0) / rated.length;
+}
+
+function nowDefaults(prefix){
+  const now = new Date();
+  document.getElementById(prefix + 'Fecha').value =
+    `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
+  document.getElementById(prefix + 'Hora').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+/* ========================= TABS ========================= */
+function switchMainTab(tab){
+  activeMainTab = tab;
+  document.getElementById('tabSeries').style.display = tab === 'series' ? 'block' : 'none';
+  document.getElementById('tabMovies').style.display = tab === 'peliculas' ? 'block' : 'none';
+  document.getElementById('tabRankings').style.display = tab === 'rankings' ? 'block' : 'none';
+  document.getElementById('tabActivity').style.display = tab === 'activity' ? 'block' : 'none';
+  document.getElementById('tabAchievements').style.display = tab === 'achievements' ? 'block' : 'none';
+  document.getElementById('tabBtnSeries').classList.toggle('active', tab === 'series');
+  document.getElementById('tabBtnMovies').classList.toggle('active', tab === 'peliculas');
+  document.getElementById('tabBtnRankings').classList.toggle('active', tab === 'rankings');
+  document.getElementById('tabBtnActivity').classList.toggle('active', tab === 'activity');
+  document.getElementById('tabBtnAchievements').classList.toggle('active', tab === 'achievements');
+  if(tab === 'rankings') renderRankings();
+  if(tab === 'activity') renderActivity();
+  if(tab === 'achievements') renderAchievements();
+}
+
+function switchSeriesSub(sub){
+  activeSeriesSub = sub;
+  document.getElementById('seriesLogView').style.display = sub === 'log' ? 'block' : 'none';
+  document.getElementById('seriesPendingView').style.display = sub === 'pending' ? 'block' : 'none';
+  document.getElementById('subBtnSeriesLog').classList.toggle('active', sub === 'log');
+  document.getElementById('subBtnSeriesPending').classList.toggle('active', sub === 'pending');
+}
+
+function switchMovieSub(sub){
+  activeMovieSub = sub;
+  document.getElementById('movieLogView').style.display = sub === 'log' ? 'block' : 'none';
+  document.getElementById('moviePendingView').style.display = sub === 'pending' ? 'block' : 'none';
+  document.getElementById('subBtnMoviesLog').classList.toggle('active', sub === 'log');
+  document.getElementById('subBtnMoviesPending').classList.toggle('active', sub === 'pending');
+}
+
+let activeRankingSub = 'series';
+function switchRankingSub(sub){
+  activeRankingSub = sub;
+  document.getElementById('rankSeriesView').style.display = sub === 'series' ? 'block' : 'none';
+  document.getElementById('rankMoviesView').style.display = sub === 'movies' ? 'block' : 'none';
+  document.getElementById('subBtnRankSeries').classList.toggle('active', sub === 'series');
+  document.getElementById('subBtnRankMovies').classList.toggle('active', sub === 'movies');
+  renderRankings();
+}
+window.switchMainTab = switchMainTab;
+window.switchSeriesSub = switchSeriesSub;
+window.switchMovieSub = switchMovieSub;
+window.switchRankingSub = switchRankingSub;
+
+/* ========================= STORAGE ========================= */
+async function loadAll(){
+  try{
+    const savedData = localStorage.getItem(DATA_KEY);
+    if(savedData){
+      const parsed = JSON.parse(savedData);
+      entries = parsed.entries || [];
+      status = parsed.status || {};
+      covers = parsed.covers || {};
+      pending = parsed.pending || [];
+      genres = parsed.genres || {};
+      types = parsed.types || {};
+      folderMusic = parsed.folderMusic || {};
+      seriesGoals = parsed.seriesGoals || {};
+      seriesDuration = parsed.seriesDuration || {};
+      movieEntries = parsed.movieEntries || [];
+      movieCovers = parsed.movieCovers || {};
+      moviePending = parsed.moviePending || [];
+      movieGenres = parsed.movieGenres || {};
+      movieTypes = parsed.movieTypes || {};
+      movieFolderMusic = parsed.movieFolderMusic || {};
+      movieDuration = parsed.movieDuration || {};
+      settings = normalizeSettings(parsed.settings);
+    } else {
+      const old = localStorage.getItem(OLD_KEY);
+      entries = old ? JSON.parse(old) : [];
+      if(entries.length) await saveAll();
+    }
+  } catch(e){
+    console.error('Error al cargar datos:', e);
+  }
+  // Migración: los géneros ahora son arrays (antes eran un solo string)
+  Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
+  Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
+  populateGenreSelects();
+  populateSettingsUI();
+  render();
+  renderMovies();
+  renderPending();
+  renderMoviePending();
+  updateGlobalStats();
+}
+
+async function saveAll(){
+  try{
+    const dataToSave = JSON.stringify({
+      entries, status, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
+      movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieFolderMusic, movieDuration, settings
+    });
+    localStorage.setItem(DATA_KEY, dataToSave);
+  } catch(e){
+    console.error('No se pudo guardar la bitácora en localStorage. Puede que la música de carpeta ocupe demasiado espacio.', e);
+    alert('No se pudo guardar. Es posible que el almacenamiento local esté lleno (por ejemplo, por archivos de música muy pesados). Intenta usar un clip de audio más corto o liviano.');
+  }
+  updateGlobalStats();
+  scheduleDriveUpload();
+}
+
+/* ========================= BACKUP: exportar / restaurar todo ========================= */
+function collectAllData(){
+  return {
+    entries, status, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
+    movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieFolderMusic, movieDuration, settings,
+    exportedAt: new Date().toISOString(),
+    backupVersion: 1
+  };
+}
+
+function applyAllData(parsed){
+  if(typeof parsed !== 'object' || parsed === null){
+    throw new Error('Formato inválido');
+  }
+  entries = parsed.entries || [];
+  status = parsed.status || {};
+  covers = parsed.covers || {};
+  pending = parsed.pending || [];
+  genres = parsed.genres || {};
+  types = parsed.types || {};
+  folderMusic = parsed.folderMusic || {};
+  seriesGoals = parsed.seriesGoals || {};
+  seriesDuration = parsed.seriesDuration || {};
+  movieEntries = parsed.movieEntries || [];
+  movieCovers = parsed.movieCovers || {};
+  moviePending = parsed.moviePending || [];
+  movieGenres = parsed.movieGenres || {};
+  movieTypes = parsed.movieTypes || {};
+  movieFolderMusic = parsed.movieFolderMusic || {};
+  movieDuration = parsed.movieDuration || {};
+  settings = normalizeSettings(parsed.settings);
+
+  Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
+  Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
+
+  populateGenreSelects();
+  populateSettingsUI();
+  render();
+  renderMovies();
+  renderPending();
+  renderMoviePending();
+  updateGlobalStats();
+}
+
+function exportBackup(){
+  const data = collectAllData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  a.href = url;
+  a.download = `bitacora-backup-${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function restoreBackup(file){
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  applyAllData(parsed);
+  await saveAll();
+}
+
+document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
+document.getElementById('btnRestoreBackup').addEventListener('click', () => {
+  document.getElementById('backupFileInput').click();
+});
+document.getElementById('backupFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  if(!confirm('Restaurar un backup reemplaza TODOS tus datos actuales (series, películas, pendientes, portadas, música). ¿Seguro que quieres continuar?')) return;
+  try{
+    await restoreBackup(file);
+    alert('¡Backup restaurado con éxito!');
+  }catch(err){
+    console.error('Error al restaurar backup:', err);
+    alert('No se pudo leer ese archivo. Asegúrate de que sea un backup exportado desde esta misma app (.json).');
+  }
+});
+
+/* ========================= GOOGLE DRIVE SYNC ========================= */
+const GOOGLE_CLIENT_ID = '918938628120-v4lf1fst2sc7cq348h777jc7i8ak77vs.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_NAME = 'bitacora-datos.json';
+
+let driveTokenClient = null;
+let driveAccessToken = null;
+let driveFileId = localStorage.getItem('driveFileId') || null;
+let driveSyncTimer = null;
+let driveApplyingRemote = false;
+
+function driveSetStatus(mode, text){
+  const el = document.getElementById('driveStatus');
+  el.className = 'drive-status' + (mode ? ' ' + mode : '');
+  document.getElementById('driveStatusText').textContent = text;
+}
+
+function initGoogleDrive(){
+  if(!window.google || !google.accounts || !google.accounts.oauth2){
+    setTimeout(initGoogleDrive, 500);
+    return;
+  }
+  try{
+    driveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: onDriveTokenResponse
+    });
+    // Intento de conexión silenciosa: si ya autorizaste antes, no debería pedir nada
+    requestDriveToken(false);
+  }catch(err){
+    console.warn('No se pudo inicializar Google Identity Services:', err);
+  }
+}
+
+function requestDriveToken(interactive){
+  if(!driveTokenClient) return;
+  driveTokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+}
+
+async function onDriveTokenResponse(resp){
+  if(!resp || resp.error){
+    return; // El intento silencioso falló; el usuario puede conectar manualmente con el botón
+  }
+  driveAccessToken = resp.access_token;
+  document.getElementById('btnConnectDrive').style.display = 'none';
+  document.getElementById('btnSyncDriveNow').style.display = 'inline-block';
+  await driveSyncOnConnect();
+}
+
+async function driveApiFetch(url, options = {}){
+  if(!driveAccessToken) throw new Error('Sin token de Google Drive');
+  const res = await fetch(url, {
+    ...options,
+    headers: Object.assign({}, options.headers || {}, { 'Authorization': `Bearer ${driveAccessToken}` })
+  });
+  if(res.status === 401){
+    driveAccessToken = null;
+    driveSetStatus('error', 'Google Drive: sesión expirada, reconecta');
+    document.getElementById('btnConnectDrive').style.display = 'inline-block';
+    document.getElementById('btnSyncDriveNow').style.display = 'none';
+    throw new Error('Token de Google Drive expirado');
+  }
+  return res;
+}
+
+async function driveFindFile(){
+  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`);
+  if(!res.ok) throw new Error('No se pudo buscar el archivo en Drive');
+  const data = await res.json();
+  return (data.files && data.files[0]) || null;
+}
+
+async function driveDownloadFile(fileId){
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+  if(!res.ok) throw new Error('No se pudo descargar el archivo de Drive');
+  return await res.json();
+}
+
+async function driveUploadFile(content){
+  const jsonStr = JSON.stringify(content);
+  if(driveFileId){
+    const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonStr
+    });
+    if(!res.ok) throw new Error('No se pudo actualizar el archivo en Drive');
+    return await res.json();
+  }
+  const boundary = 'bitacora_boundary_' + Date.now();
+  const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${jsonStr}\r\n` +
+    `--${boundary}--`;
+  const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`, {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body
+  });
+  if(!res.ok) throw new Error('No se pudo crear el archivo en Drive');
+  const data = await res.json();
+  driveFileId = data.id;
+  localStorage.setItem('driveFileId', driveFileId);
+  return data;
+}
+
+async function driveSyncOnConnect(){
+  driveSetStatus('syncing', 'Google Drive: revisando...');
+  try{
+    let remoteMeta = driveFileId ? { id: driveFileId } : await driveFindFile();
+    if(remoteMeta && !driveFileId){
+      driveFileId = remoteMeta.id;
+      localStorage.setItem('driveFileId', driveFileId);
+    }
+
+    if(!remoteMeta){
+      await driveUploadFile(collectAllData());
+      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+      driveSetStatus('connected', 'Google Drive: conectado (archivo creado)');
+      return;
+    }
+
+    if(!remoteMeta.modifiedTime){
+      const found = await driveFindFile();
+      if(found) remoteMeta = found;
+    }
+
+    const lastSynced = localStorage.getItem('driveLastSyncedIso');
+    const lastLocalChange = localStorage.getItem('lastLocalChangeIso');
+    const remoteIsNewer = remoteMeta.modifiedTime && (!lastSynced || new Date(remoteMeta.modifiedTime) > new Date(lastSynced));
+
+    if(remoteIsNewer){
+      const remoteData = await driveDownloadFile(driveFileId);
+      driveApplyingRemote = true;
+      applyAllData(remoteData);
+      driveApplyingRemote = false;
+      localStorage.setItem(DATA_KEY, JSON.stringify(collectAllData()));
+      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+      driveSetStatus('connected', 'Google Drive: datos actualizados desde otro dispositivo');
+    } else if(lastLocalChange && (!lastSynced || new Date(lastLocalChange) > new Date(lastSynced))){
+      await driveUploadFile(collectAllData());
+      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+      driveSetStatus('connected', 'Google Drive: sincronizado');
+    } else {
+      driveSetStatus('connected', 'Google Drive: ya estaba al día');
+    }
+  } catch(err){
+    console.error('Error sincronizando con Google Drive:', err);
+    driveSetStatus('error', 'Google Drive: error al sincronizar');
+  }
+}
+
+function scheduleDriveUpload(){
+  localStorage.setItem('lastLocalChangeIso', new Date().toISOString());
+  if(!driveAccessToken || driveApplyingRemote) return;
+  clearTimeout(driveSyncTimer);
+  driveSetStatus('syncing', 'Google Drive: sincronizando...');
+  driveSyncTimer = setTimeout(async () => {
+    try{
+      await driveUploadFile(collectAllData());
+      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+      driveSetStatus('connected', 'Google Drive: sincronizado');
+    }catch(err){
+      console.error('Error subiendo a Google Drive:', err);
+      driveSetStatus('error', 'Google Drive: error al sincronizar (reintentará en el próximo cambio)');
+    }
+  }, 2500);
+}
+
+document.getElementById('btnConnectDrive').addEventListener('click', () => {
+  requestDriveToken(true);
+});
+document.getElementById('btnSyncDriveNow').addEventListener('click', async () => {
+  if(!driveAccessToken){ requestDriveToken(true); return; }
+  driveSetStatus('syncing', 'Google Drive: sincronizando...');
+  try{
+    await driveUploadFile(collectAllData());
+    localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+    driveSetStatus('connected', 'Google Drive: sincronizado');
+  }catch(err){
+    console.error(err);
+    driveSetStatus('error', 'Google Drive: error al sincronizar');
+  }
+});
+
+window.addEventListener('load', initGoogleDrive);
+
+/* ========================= AJUSTES: duración promedio ========================= */
+function populateSettingsUI(){
+  // No-op: los valores se cargan al abrir el modal de duración (openDurationSettings)
+}
+function openDurationSettings(){
+  document.getElementById('durEpisodeLive').value = settings.episodeLive;
+  document.getElementById('durEpisodeAnimada').value = settings.episodeAnimada;
+  document.getElementById('durEpisodeDefault').value = settings.episodeDefault;
+  document.getElementById('durMovieLive').value = settings.movieLive;
+  document.getElementById('durMovieAnimada').value = settings.movieAnimada;
+  document.getElementById('durMovieDefault').value = settings.movieDefault;
+  document.getElementById('durationModalOverlay').style.display = 'flex';
+}
+function closeDurationSettings(){
+  document.getElementById('durationModalOverlay').style.display = 'none';
+}
+async function saveDurationSettings(){
+  const readVal = (id, fallback) => {
+    const n = parseInt(document.getElementById(id).value, 10);
+    return (n > 0) ? n : fallback;
+  };
+  settings.episodeLive = readVal('durEpisodeLive', DEFAULT_SETTINGS.episodeLive);
+  settings.episodeAnimada = readVal('durEpisodeAnimada', DEFAULT_SETTINGS.episodeAnimada);
+  settings.episodeDefault = readVal('durEpisodeDefault', DEFAULT_SETTINGS.episodeDefault);
+  settings.movieLive = readVal('durMovieLive', DEFAULT_SETTINGS.movieLive);
+  settings.movieAnimada = readVal('durMovieAnimada', DEFAULT_SETTINGS.movieAnimada);
+  settings.movieDefault = readVal('durMovieDefault', DEFAULT_SETTINGS.movieDefault);
+  closeDurationSettings();
+  await saveAll();
+}
+document.getElementById('btnOpenDurationSettings').addEventListener('click', openDurationSettings);
+document.getElementById('durationModalClose').addEventListener('click', closeDurationSettings);
+document.getElementById('durationModalSave').addEventListener('click', saveDurationSettings);
+document.getElementById('durationModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'durationModalOverlay') closeDurationSettings();
+});
+
+/* ========================= GÉNERO / TIPO ========================= */
+function populateGenreSelects(){
+  const opts = '<option value="">Sin especificar</option>' + GENRES.map(g => `<option value="${g}">${g}</option>`).join('');
+  ['fGenero','bGenero','mGenero'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = opts;
+  });
+  const filterOpts = '<option value="todos">Todos los géneros</option>' + GENRES.map(g => `<option value="${g}">${g}</option>`).join('');
+  const fFilter = document.getElementById('fGenreFilter');
+  if(fFilter) fFilter.innerHTML = filterOpts;
+  const mFilter = document.getElementById('mGenreFilter');
+  if(mFilter) mFilter.innerHTML = filterOpts;
+  const rFilter = document.getElementById('rankGenreFilter');
+  if(rFilter) rFilter.innerHTML = filterOpts;
+}
+
+function getGenreList(name){ return genres[seriesKey(name)] || []; }
+
+/* ========================= DURACIÓN: default automático según tipo ========================= */
+function defaultDurationFor(mediaKind, tipoVal){
+  if(mediaKind === 'episode'){
+    if(tipoVal === 'live') return settings.episodeLive;
+    if(tipoVal === 'animada') return settings.episodeAnimada;
+    return settings.episodeDefault;
+  }
+  if(tipoVal === 'live') return settings.movieLive;
+  if(tipoVal === 'animada') return settings.movieAnimada;
+  return settings.movieDefault;
+}
+function wireTipoDurationDefault(tipoId, duracionId, mediaKind){
+  const tipoEl = document.getElementById(tipoId);
+  const durEl = document.getElementById(duracionId);
+  if(!tipoEl || !durEl) return;
+  tipoEl.addEventListener('change', () => {
+    if(!durEl.value){ durEl.value = defaultDurationFor(mediaKind, tipoEl.value); }
+  });
+}
+wireTipoDurationDefault('fTipo', 'fDuracion', 'episode');
+wireTipoDurationDefault('bTipo', 'bDuracion', 'episode');
+wireTipoDurationDefault('mTipo', 'mDuracion', 'movie');
+function getGenre(name){ return getGenreList(name).join(', '); }
+function getType(name){ return types[seriesKey(name)] || ''; }
+function getMovieGenreList(name){ return movieGenres[seriesKey(name)] || []; }
+function getMovieGenre(name){ return getMovieGenreList(name).join(', '); }
+function getMovieType(name){ return movieTypes[seriesKey(name)] || ''; }
+
+function tagsHtml(genreStr, type){
+  const parts = [];
+  (genreStr ? genreStr.split(', ') : []).forEach(g => {
+    parts.push(`<span class="tag-pill genre">${escapeHtml(g)}</span>`);
+  });
+  if(type) parts.push(`<span class="tag-pill type-${type}">${TYPE_LABELS[type] || type}</span>`);
+  return parts.join('');
+}
+
+function updateGlobalStats(){
+  document.getElementById('statEpisodes').textContent = entries.length;
+  const seriesSet = new Set(entries.map(e => seriesKey(e.serie)));
+  document.getElementById('statSeries').textContent = seriesSet.size;
+  document.getElementById('statMovies').textContent = movieEntries.length;
+  document.getElementById('statAllPending').textContent = pending.length + moviePending.length;
+
+  const allDated = [...entries, ...movieEntries].filter(e => e.date);
+  if(allDated.length){
+    allDated.sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+    document.getElementById('statLast').textContent = fmtDate(allDated[0].date, allDated[0].time);
+  } else {
+    document.getElementById('statLast').textContent = '—';
+  }
+}
+
+/* ========================= SERIES: covers ========================= */
+function resizeImageToDataUrl(file, maxSize, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+      img.onload = () => {
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function openCoverPicker(name){
+  pendingCoverSeries = name;
+  document.getElementById('coverFileInput').click();
+}
+async function removeCover(name){
+  const key = seriesKey(name);
+  const removed = covers[key];
+  if(!removed) return;
+  delete covers[key];
+  render();
+  await saveAll();
+  showUndoToast('Portada eliminada.', async () => {
+    covers[key] = removed;
+    render();
+    await saveAll();
+  });
+}
+window.openCoverPicker = openCoverPicker;
+window.removeCover = removeCover;
+
+document.getElementById('coverFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !pendingCoverSeries) return;
+  try{
+    const dataUrl = await resizeImageToDataUrl(file, 200, 0.78);
+    covers[seriesKey(pendingCoverSeries)] = dataUrl;
+    await saveAll();
+    render();
+  }catch(err){ console.error('No se pudo procesar la portada', err); }
+  pendingCoverSeries = null;
+});
+
+document.getElementById('btnBulkCover').addEventListener('click', () => {
+  const bulkErr = document.getElementById('bulkErrMsg');
+  const serie = document.getElementById('bSerie').value.trim();
+  if(!serie){
+    bulkErr.textContent = 'Escribe primero el nombre de la serie para poder elegirle portada.';
+    bulkErr.style.display = 'block';
+    return;
+  }
+  bulkErr.style.display = 'none';
+  openCoverPicker(serie);
+});
+
+/* ========================= MÚSICA DE CARPETA (compartido) ========================= */
+const MAX_AUDIO_BYTES = 6 * 1024 * 1024; // ~6MB, para no reventar localStorage
+
+function readFileAsDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function playFolderMusic(audioKey, dataUrl){
+  // Detiene cualquier música que estuviera sonando de otra carpeta
+  if(currentAudio){
+    currentAudio.pause();
+    currentAudio = null;
+    currentAudioKey = null;
+  }
+  if(!dataUrl) return;
+  currentAudio = new Audio(dataUrl);
+  currentAudio.loop = true;
+  currentAudioKey = audioKey;
+  currentAudio.play().catch(() => {
+    // Reproducción bloqueada por el navegador hasta interacción; se ignora silenciosamente
+  });
+}
+
+function stopFolderMusic(audioKey){
+  if(currentAudioKey === audioKey && currentAudio){
+    currentAudio.pause();
+    currentAudio = null;
+    currentAudioKey = null;
+  }
+}
+
+function openMusicPicker(name){
+  pendingMusicSeries = name;
+  document.getElementById('audioFileInput').click();
+}
+async function removeFolderMusic(name){
+  const key = seriesKey(name);
+  const removed = folderMusic[key];
+  if(!removed) return;
+  delete folderMusic[key];
+  stopFolderMusic('series:' + key);
+  render();
+  await saveAll();
+  showUndoToast('Música de la carpeta eliminada.', async () => {
+    folderMusic[key] = removed;
+    render();
+    await saveAll();
+  });
+}
+window.openMusicPicker = openMusicPicker;
+window.removeFolderMusic = removeFolderMusic;
+
+document.getElementById('audioFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !pendingMusicSeries) return;
+  if(file.size > MAX_AUDIO_BYTES){
+    alert('Ese archivo de audio es muy pesado (más de 6MB). Elige un clip más corto o liviano para que se pueda guardar.');
+    pendingMusicSeries = null;
+    return;
+  }
+  try{
+    const dataUrl = await readFileAsDataUrl(file);
+    folderMusic[seriesKey(pendingMusicSeries)] = { name: file.name, dataUrl };
+    await saveAll();
+    render();
+  }catch(err){ console.error('No se pudo procesar el audio', err); }
+  pendingMusicSeries = null;
+});
+
+/* ========================= SERIES: status / expand ========================= */
+const STATUS_LABELS = { curso: 'En curso', terminada: 'Terminada', rewatch: 'Repitiendo' };
+const STATUS_ORDER = ['curso', 'terminada', 'rewatch'];
+
+function getStatus(name){ return status[seriesKey(name)] || 'curso'; }
+
+function getSeriesGoal(name){ return seriesGoals[seriesKey(name)] || 0; }
+async function setSeriesGoal(name){
+  const key = seriesKey(name);
+  const current = getSeriesGoal(name);
+  const input = prompt(`¿Cuántos capítulos en total tiene "${name}"?\n(Déjalo vacío o en 0 para quitar la barra de progreso)`, current || '');
+  if(input === null) return; // cancelado
+  const n = parseInt(input, 10);
+  if(!n || n <= 0){ delete seriesGoals[key]; }
+  else { seriesGoals[key] = n; }
+  render();
+  await saveAll();
+}
+window.setSeriesGoal = setSeriesGoal;
+
+async function toggleStatus(name){
+  const key = seriesKey(name);
+  const idx = STATUS_ORDER.indexOf(getStatus(name));
+  status[key] = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+  render();
+  await saveAll();
+}
+window.toggleStatus = toggleStatus;
+
+function toggleExpand(name){
+  const key = seriesKey(name);
+  if(expandedSeries.has(key)){
+    expandedSeries.delete(key);
+    stopFolderMusic('series:' + key);
+  } else {
+    expandedSeries.add(key);
+    playFolderMusic('series:' + key, (folderMusic[key] || {}).dataUrl);
+  }
+  render();
+}
+window.toggleExpand = toggleExpand;
+
+/* ========================= SERIES: CRUD ========================= */
+async function deleteEntry(id){
+  const idx = entries.findIndex(e => e.id === id);
+  if(idx === -1) return;
+  const removed = entries[idx];
+  entries.splice(idx, 1);
+  render();
+  await saveAll();
+  showUndoToast('Episodio eliminado.', async () => {
+    entries.splice(idx, 0, removed);
+    render();
+    await saveAll();
+  });
+}
+window.deleteEntry = deleteEntry;
+
+function startEdit(id){
+  const entry = entries.find(en => en.id === id);
+  if(entry) expandedSeries.add(seriesKey(entry.serie));
+  editingId = id;
+  render();
+}
+function cancelEdit(){ editingId = null; render(); }
+async function saveEdit(id){
+  const card = document.querySelector(`.entry-card[data-id="${id}"]`);
+  const entry = entries.find(en => en.id === id);
+  if(!card || !entry) return;
+  const dateUnknown = card.querySelector('.edit-date-unknown').checked;
+  entry.season = card.querySelector('.edit-season').value;
+  entry.episode = card.querySelector('.edit-episode').value;
+  entry.date = dateUnknown ? '' : displayToIso(card.querySelector('.edit-date').value);
+  entry.time = dateUnknown ? '' : card.querySelector('.edit-time').value;
+  entry.rating = parseInt(card.querySelector('.edit-rating').value) || 0;
+  entry.rewatch = card.querySelector('.edit-rewatch').checked;
+  entry.note = card.querySelector('.edit-note').value.trim();
+  editingId = null;
+  render();
+  await saveAll();
+}
+window.startEdit = startEdit;
+window.cancelEdit = cancelEdit;
+window.saveEdit = saveEdit;
+
+function updateSerieList(){
+  const list = document.getElementById('serieList');
+  const names = [...new Set(entries.map(e => e.serie.trim()))].sort((a,b) => a.localeCompare(b));
+  list.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
+}
+
+function renderContinueWatching(){
+  const panel = document.getElementById('continueWatchingPanel');
+  const list = document.getElementById('continueWatchingList');
+  const latestByKey = {};
+  entries.forEach(e => {
+    const name = e.serie.trim();
+    if(getStatus(name) !== 'curso') return;
+    const k = seriesKey(name);
+    if(!latestByKey[k] || sortKeyOf(e) > sortKeyOf(latestByKey[k])) latestByKey[k] = e;
+  });
+  const items = Object.values(latestByKey).sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  if(!items.length){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = items.map(e => {
+    const name = e.serie.trim();
+    const cover = covers[seriesKey(name)] || null;
+    const tParts = [];
+    if(e.season !== '' && e.season != null && e.season !== undefined) tParts.push(`T${pad(e.season)}`);
+    if(e.episode !== '' && e.episode != null && e.episode !== undefined) tParts.push(`E${pad(e.episode)}`);
+    const tag = tParts.join(' ');
+    return `
+      <div class="cw-card" onclick="jumpToSerie(decodeURIComponent('${encodeURIComponent(name)}'))">
+        <div class="cw-cover" style="${cover ? `background-image:url('${cover}')` : ''}">${cover ? '' : '📺'}</div>
+        <div class="cw-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+        <div class="cw-last">Último: ${tag || '—'}${e.date ? ' · ' + fmtDate(e.date) : ''}</div>
+      </div>`;
+  }).join('');
+}
+
+function jumpToSerie(name){
+  switchSeriesSub('log');
+  document.getElementById('fSerie').value = name;
+  document.getElementById('fSerie').scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('fSerie').focus();
+}
+window.jumpToSerie = jumpToSerie;
+
+function render(){
+  renderContinueWatching();
+  updateSerieList();
+  const container = document.getElementById('logContainer');
+  const search = document.getElementById('fSearch').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('fStatusFilter').value;
+
+  if(entries.length === 0){
+    container.innerHTML = `<div class="empty-state"><span class="big">Cinta vacía</span>Todavía no hay episodios registrados.<br>Registra el primero arriba.</div>`;
+    updateGlobalStats();
+    return;
+  }
+
+  const genreFilter = document.getElementById('fGenreFilter').value;
+  const typeFilter = document.getElementById('fTypeFilter').value;
+
+  const sortedAll = [...entries].sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  let filtered = sortedAll.filter(e => {
+    if(search && !e.serie.toLowerCase().includes(search)) return false;
+    if(statusFilter !== 'todas' && getStatus(e.serie) !== statusFilter) return false;
+    if(genreFilter !== 'todos' && !getGenreList(e.serie).includes(genreFilter)) return false;
+    if(typeFilter !== 'todos' && getType(e.serie) !== typeFilter) return false;
+    return true;
+  });
+
+  if(filtered.length === 0){
+    container.innerHTML = `<div class="empty-state"><span class="big">Sin resultados</span>No hay episodios que coincidan con el filtro actual.</div>`;
+    updateGlobalStats();
+    return;
+  }
+
+  const groups = {}; const order = [];
+  filtered.forEach(e => {
+    const key = e.serie.trim();
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(e);
+  });
+
+  const sortMode = document.getElementById('fSortFilter').value;
+  if(sortMode === 'nombre'){
+    order.sort((a,b) => a.localeCompare(b, 'es', {sensitivity:'base'}));
+  } else if(sortMode === 'calificacion'){
+    order.sort((a,b) => avgRatingOf(groups[b]) - avgRatingOf(groups[a]));
+  }
+  // 'reciente' ya queda resuelto por el orden natural de `filtered` (más reciente primero)
+
+  container.innerHTML = order.map(serie => {
+    const items = groups[serie].sort((a, b) => {
+      const sa = isNaN(parseInt(a.season,10)) ? 0 : parseInt(a.season,10);
+      const sb = isNaN(parseInt(b.season,10)) ? 0 : parseInt(b.season,10);
+      if(sa !== sb) return sa - sb;
+      const ea = isNaN(parseInt(a.episode,10)) ? 0 : parseInt(a.episode,10);
+      const eb = isNaN(parseInt(b.episode,10)) ? 0 : parseInt(b.episode,10);
+      return ea - eb;
+    });
+    const st = getStatus(serie);
+    const isOpen = expandedSeries.has(seriesKey(serie));
+    const cover = covers[seriesKey(serie)] || null;
+
+    const cards = items.map(e => {
+      if(e.id === editingId){
+        const ratingOptions = [0,1,2,3,4,5].map(v =>
+          `<option value="${v}" ${e.rating == v ? 'selected' : ''}>${v === 0 ? 'Sin calif.' : '★'.repeat(v)}</option>`
+        ).join('');
+        return `
+          <div class="entry-card editing" data-id="${e.id}">
+            <div class="edit-grid">
+              <div class="edit-field"><label>Temporada</label><input type="number" min="0" class="edit-season" value="${e.season ?? ''}"></div>
+              <div class="edit-field"><label>Capítulo</label><input type="number" min="0" class="edit-episode" value="${e.episode ?? ''}"></div>
+              <div class="edit-field"><label>Fecha</label><input type="text" class="edit-date" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)" value="${e.date ? isoToDisplay(e.date) : ''}" ${!e.date ? 'disabled' : ''}></div>
+              <div class="edit-field"><label>Hora</label><input type="time" class="edit-time" value="${e.time || ''}" ${!e.date ? 'disabled' : ''}></div>
+            </div>
+            <label class="checkbox-row-inline edit-line">
+              <input type="checkbox" class="edit-date-unknown" ${!e.date ? 'checked' : ''}
+                onchange="const c=this.closest('.entry-card'); c.querySelector('.edit-date').disabled=this.checked; c.querySelector('.edit-time').disabled=this.checked;">
+              No recuerdo la fecha/hora exacta
+            </label>
+            <div class="edit-field full"><label>Calificación</label><select class="edit-rating">${ratingOptions}</select></div>
+            <label class="checkbox-row-inline edit-line"><input type="checkbox" class="edit-rewatch" ${e.rewatch ? 'checked' : ''}> 🔁 Es un rewatch</label>
+            <div class="edit-field full"><label>Nota</label><textarea class="edit-note">${escapeHtml(e.note || '')}</textarea></div>
+            <div class="edit-actions">
+              <button class="btn-mini save" onclick="saveEdit('${e.id}')">✔ Guardar</button>
+              <button class="btn-mini" onclick="cancelEdit()">✕ Cancelar</button>
+            </div>
+          </div>`;
+      }
+      const tParts = [];
+      if(e.season !== '' && e.season != null) tParts.push(`T${pad(e.season)}`);
+      if(e.episode !== '' && e.episode != null) tParts.push(`E${pad(e.episode)}`);
+      const tag = tParts.length ? tParts.join(' ') : 'Sin especificar';
+      const stars = starString(e.rating);
+      return `
+        <div class="entry-card" data-id="${e.id}">
+          <div class="entry-left">
+            <div class="entry-tag-row">
+              <span class="entry-tag">${tag}</span>
+              ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
+              ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+            </div>
+            <div class="entry-time">${fmtDate(e.date, e.time)}</div>
+            ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
+          </div>
+          <div class="entry-actions">
+            <button class="del-btn" onclick="startEdit('${e.id}')" title="Editar">✎</button>
+            <button class="del-btn" onclick="deleteEntry('${e.id}')" title="Eliminar registro">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const groupGenre = getGenre(serie);
+    const groupType = getType(serie);
+    const music = folderMusic[seriesKey(serie)] || null;
+    const isPlaying = currentAudioKey === 'series:' + seriesKey(serie);
+
+    const goal = getSeriesGoal(serie);
+    const watchedSet = new Set(items.map(e => `${e.season ?? ''}|${e.episode ?? ''}`));
+    const watchedCount = watchedSet.size;
+    const pct = goal > 0 ? Math.min(100, Math.round((watchedCount / goal) * 100)) : 0;
+    const progressBarHtml = goal > 0 ? `
+        <div class="progress-row">
+          <div class="progress-track ${pct >= 100 ? 'complete' : ''}"><div class="progress-mask" style="width:${100 - pct}%"></div></div>
+          <span class="progress-label">${watchedCount}/${goal} · ${pct}%</span>
+          <button type="button" class="progress-goal-btn" onclick="setSeriesGoal(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Editar meta de capítulos">editar meta</button>
+        </div>` : '';
+
+    return `
+      <div class="series-group">
+        <div class="series-header" onclick="toggleExpand(decodeURIComponent('${encodeURIComponent(serie)}'))">
+          <div class="series-name">
+            <span class="series-chevron ${isOpen ? 'open' : ''}">▸</span>
+            <span class="series-cover ${cover ? '' : 'empty'}"
+                  style="${cover ? `background-image:url('${cover}')` : ''}"
+                  onclick="event.stopPropagation(); openCoverPicker(decodeURIComponent('${encodeURIComponent(serie)}'))"
+                  title="${cover ? 'Cambiar portada' : 'Agregar portada'}">${cover ? '' : '🖼️'}</span>
+            ${escapeHtml(serie)} <span class="badge">${items.length} ep.</span>
+            ${cover ? `<span class="remove-cover" onclick="event.stopPropagation(); removeCover(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Quitar portada">✕</span>` : ''}
+          </div>
+          <div class="header-tags">
+            ${tagsHtml(groupGenre, groupType)}
+            <span class="genre-edit-btn" onclick="event.stopPropagation(); openGenreModal('series', decodeURIComponent('${encodeURIComponent(serie)}'))" title="Editar género y tipo">🏷️✎</span>
+            ${isPlaying ? `<span class="music-playing-indicator"><span class="dot"></span>sonando</span>` : ''}
+            <span class="music-btn ${music ? 'has' : ''}"
+                  onclick="event.stopPropagation(); openMusicPicker(decodeURIComponent('${encodeURIComponent(serie)}'))"
+                  title="${music ? 'Cambiar música de la carpeta: ' + escapeHtml(music.name) : 'Elegir música para esta carpeta'}">🎵</span>
+            ${music ? `<span class="remove-music" onclick="event.stopPropagation(); removeFolderMusic(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Quitar música">✕</span>` : ''}
+            <span class="goal-btn ${goal > 0 ? 'has' : ''}"
+                  onclick="event.stopPropagation(); setSeriesGoal(decodeURIComponent('${encodeURIComponent(serie)}'))"
+                  title="${goal > 0 ? 'Editar meta de capítulos (' + goal + ')' : 'Definir total de capítulos para ver el progreso'}">🎯</span>
+            <button class="status-toggle ${st}" onclick="event.stopPropagation(); toggleStatus(decodeURIComponent('${encodeURIComponent(serie)}'))">${STATUS_LABELS[st]}</button>
+          </div>
+        </div>
+        ${progressBarHtml}
+        <div class="entries-collapse ${isOpen ? 'open' : ''}">${cards}</div>
+      </div>`;
+  }).join('');
+
+  updateGlobalStats();
+}
+
+document.getElementById('fSearch').addEventListener('input', render);
+document.getElementById('fStatusFilter').addEventListener('change', render);
+document.getElementById('fGenreFilter').addEventListener('change', render);
+document.getElementById('fTypeFilter').addEventListener('change', render);
+document.getElementById('fSortFilter').addEventListener('change', render);
+
+/* ========================= SERIES: main form ========================= */
+function setRating(v){
+  currentRating = v;
+  document.querySelectorAll('#starPicker button').forEach(btn => {
+    btn.classList.toggle('on', parseInt(btn.dataset.v) <= v);
+  });
+}
+document.getElementById('starPicker').addEventListener('click', (e) => {
+  if(e.target.tagName === 'BUTTON') setRating(parseInt(e.target.dataset.v));
+});
+document.getElementById('clearStar').addEventListener('click', () => setRating(0));
+
+document.getElementById('fDateUnknown').addEventListener('change', (e) => {
+  document.getElementById('fFecha').disabled = e.target.checked;
+  document.getElementById('fHora').disabled = e.target.checked;
+});
+
+async function addEntry(){
+  const serie = document.getElementById('fSerie').value.trim();
+  const errEl = document.getElementById('errMsg');
+  if(!serie){ errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('btnAdd');
+  btn.disabled = true;
+
+  const dateUnknown = document.getElementById('fDateUnknown').checked;
+  const isRewatch = document.getElementById('fRewatch').checked;
+  entries.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    serie,
+    season: document.getElementById('fTemp').value,
+    episode: document.getElementById('fCap').value,
+    date: dateUnknown ? '' : displayToIso(document.getElementById('fFecha').value),
+    time: dateUnknown ? '' : document.getElementById('fHora').value,
+    rating: currentRating,
+    rewatch: isRewatch,
+    note: document.getElementById('fNota').value.trim()
+  });
+
+  const key = seriesKey(serie);
+  const generoVal = document.getElementById('fGenero').value;
+  const tipoVal = document.getElementById('fTipo').value;
+  const duracionVal = parseInt(document.getElementById('fDuracion').value, 10);
+  if(generoVal){ genres[key] = genres[key] || []; if(!genres[key].includes(generoVal)) genres[key].push(generoVal); }
+  if(tipoVal) types[key] = tipoVal;
+  if(duracionVal > 0) seriesDuration[key] = duracionVal;
+
+  // Si la serie estaba en pendientes, al registrar su primer capítulo se quita de esa lista automáticamente
+  const hadPending = pending.some(p => seriesKey(p.serie) === key);
+  if(hadPending){
+    pending = pending.filter(p => seriesKey(p.serie) !== key);
+    renderPending();
+  }
+
+  render();
+  await saveAll();
+
+  document.getElementById('fSerie').value = '';
+  document.getElementById('fTemp').value = '';
+  document.getElementById('fCap').value = '';
+  document.getElementById('fNota').value = '';
+  document.getElementById('fGenero').value = '';
+  document.getElementById('fTipo').value = '';
+  document.getElementById('fDuracion').value = '';
+  document.getElementById('fDateUnknown').checked = false;
+  document.getElementById('fFecha').disabled = false;
+  document.getElementById('fHora').disabled = false;
+  document.getElementById('fRewatch').checked = false;
+  setRating(0);
+  nowDefaults('f');
+  document.getElementById('fSerie').focus();
+  btn.disabled = false;
+}
+document.getElementById('btnAdd').addEventListener('click', addEntry);
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && document.activeElement && document.activeElement.tagName === 'INPUT'){
+    if(document.getElementById('tabSeries').style.display !== 'none' && activeSeriesSub === 'log') addEntry();
+  }
+});
+
+/* ========================= SERIES: bulk ========================= */
+document.getElementById('btnGenerateBulk').addEventListener('click', () => {
+  const bulkErr = document.getElementById('bulkErrMsg');
+  const serie = document.getElementById('bSerie').value.trim();
+  const desde = parseInt(document.getElementById('bDesde').value);
+  const hasta = parseInt(document.getElementById('bHasta').value);
+
+  if(!serie || isNaN(desde) || isNaN(hasta) || hasta < desde || (hasta - desde) > 300){
+    bulkErr.textContent = 'Revisa la serie y el rango de capítulos.';
+    bulkErr.style.display = 'block';
+    return;
+  }
+  bulkErr.style.display = 'none';
+
+  let html = '';
+  for(let n = desde; n <= hasta; n++){
+    html += `
+      <div class="bulk-row" data-ep="${n}">
+        <div class="bulk-ep">Cap. ${pad(n)}</div>
+        <input type="text" class="bulk-date" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)">
+        <select class="bulk-rating">
+          <option value="0">Sin calif.</option>
+          <option value="1">★</option><option value="2">★★</option>
+          <option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option>
+        </select>
+        <input type="text" class="bulk-note" placeholder="Nota (opcional)">
+        <input type="checkbox" class="bulk-rewatch" title="Rewatch">
+      </div>`;
+  }
+  document.getElementById('bulkRows').innerHTML = html;
+  document.getElementById('bulkRowsWrap').style.display = 'block';
+  document.getElementById('bAllUnknownDate').checked = false;
+  document.getElementById('bAllRewatch').checked = false;
+});
+
+document.getElementById('btnFillDate').addEventListener('click', () => {
+  const val = document.getElementById('bFillDate').value;
+  if(!val) return;
+  document.querySelectorAll('.bulk-date:not(:disabled)').forEach(inp => inp.value = val);
+});
+document.getElementById('bAllUnknownDate').addEventListener('change', (e) => {
+  document.querySelectorAll('.bulk-date').forEach(inp => inp.disabled = e.target.checked);
+});
+document.getElementById('bAllRewatch').addEventListener('change', (e) => {
+  document.querySelectorAll('.bulk-rewatch').forEach(cb => cb.checked = e.target.checked);
+});
+document.getElementById('btnSaveBulk').addEventListener('click', async () => {
+  const serie = document.getElementById('bSerie').value.trim();
+  const season = document.getElementById('bTemp').value;
+  const allUnknown = document.getElementById('bAllUnknownDate').checked;
+  const btn = document.getElementById('btnSaveBulk');
+  btn.disabled = true;
+
+  document.querySelectorAll('.bulk-row').forEach(row => {
+    const ep = row.dataset.ep;
+    entries.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7) + '-' + ep,
+      serie, season, episode: ep,
+      date: allUnknown ? '' : displayToIso(row.querySelector('.bulk-date').value),
+      time: '',
+      rating: parseInt(row.querySelector('.bulk-rating').value) || 0,
+      rewatch: row.querySelector('.bulk-rewatch').checked,
+      note: row.querySelector('.bulk-note').value.trim()
+    });
+  });
+
+  const bKey = seriesKey(serie);
+  const bGeneroVal = document.getElementById('bGenero').value;
+  const bTipoVal = document.getElementById('bTipo').value;
+  const bDuracionVal = parseInt(document.getElementById('bDuracion').value, 10);
+  if(bGeneroVal){ genres[bKey] = genres[bKey] || []; if(!genres[bKey].includes(bGeneroVal)) genres[bKey].push(bGeneroVal); }
+  if(bTipoVal) types[bKey] = bTipoVal;
+  if(bDuracionVal > 0) seriesDuration[bKey] = bDuracionVal;
+
+  render();
+  await saveAll();
+
+  document.getElementById('bulkRowsWrap').style.display = 'none';
+  document.getElementById('bulkRows').innerHTML = '';
+  document.getElementById('bSerie').value = '';
+  document.getElementById('bTemp').value = '';
+  document.getElementById('bDesde').value = '';
+  document.getElementById('bHasta').value = '';
+  document.getElementById('bFillDate').value = '';
+  document.getElementById('bGenero').value = '';
+  document.getElementById('bTipo').value = '';
+  document.getElementById('bDuracion').value = '';
+  document.getElementById('bAllUnknownDate').checked = false;
+  document.getElementById('bAllRewatch').checked = false;
+  btn.disabled = false;
+});
+
+/* ========================= SERIES: pendientes ========================= */
+function timeAgo(timestamp){
+  if(!timestamp) return null;
+  const diffMs = Date.now() - timestamp;
+  const days = Math.floor(diffMs / 86400000);
+  if(days <= 0) return { text:'agregada hoy', stale:false };
+  if(days === 1) return { text:'agregada ayer', stale:false };
+  if(days < 7) return { text:`agregada hace ${days} días`, stale:false };
+  if(days < 30){ const w = Math.floor(days/7); return { text:`agregada hace ${w} ${w===1?'semana':'semanas'}`, stale: days >= 21 }; }
+  const m = Math.floor(days/30);
+  return { text:`agregada hace ${m} ${m===1?'mes':'meses'}`, stale:true };
+}
+
+function renderPending(){
+  document.getElementById('pendingCount').textContent = pending.length;
+  const wrap = document.getElementById('pendingList');
+  if(pending.length === 0){
+    wrap.innerHTML = `<div class="pending-empty">No tienes series pendientes todavía. Agrega alguna arriba.</div>`;
+    return;
+  }
+  wrap.innerHTML = pending.map(p => {
+    const age = timeAgo(p.addedAt);
+    return `
+    <div class="pending-item">
+      <div class="pending-info">
+        <div class="pending-name">📌 ${escapeHtml(p.serie)}</div>
+        ${p.note ? `<div class="pending-note">"${escapeHtml(p.note)}"</div>` : ''}
+        ${age ? `<div class="pending-age ${age.stale ? 'stale' : ''}">${age.stale ? '⏳ ' : ''}${age.text}</div>` : ''}
+      </div>
+      <div class="pending-actions">
+        <button class="btn-mini start" onclick="startWatchingPending('${p.id}')" title="Ya la empecé a ver">▶ Empezar</button>
+        <button class="del-btn" onclick="removePending('${p.id}')" title="Quitar de pendientes">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function removePending(id){
+  const idx = pending.findIndex(p => p.id === id);
+  if(idx === -1) return;
+  const removed = pending[idx];
+  pending.splice(idx, 1);
+  renderPending();
+  await saveAll();
+  showUndoToast('Quitada de pendientes.', async () => {
+    pending.splice(idx, 0, removed);
+    renderPending();
+    await saveAll();
+  });
+}
+async function startWatchingPending(id){
+  const p = pending.find(x => x.id === id);
+  if(!p) return;
+  pending = pending.filter(x => x.id !== id);
+  renderPending();
+  await saveAll();
+  switchSeriesSub('log');
+  document.getElementById('fSerie').value = p.serie;
+  document.getElementById('fSerie').scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('fSerie').focus();
+}
+window.removePending = removePending;
+window.startWatchingPending = startWatchingPending;
+
+document.getElementById('btnAddPending').addEventListener('click', async () => {
+  const nameInput = document.getElementById('pName');
+  const noteInput = document.getElementById('pNote');
+  const serie = nameInput.value.trim();
+  if(!serie) return;
+  pending.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,7), serie, note: noteInput.value.trim(), addedAt: Date.now() });
+  nameInput.value = ''; noteInput.value = '';
+  renderPending();
+  await saveAll();
+  nameInput.focus();
+});
+
+/* ========================= MOVIES: covers ========================= */
+function openMovieCoverPicker(title){
+  pendingCoverMovie = title;
+  document.getElementById('movieCoverFileInput').click();
+}
+async function removeMovieCover(title){
+  const key = seriesKey(title);
+  const removed = movieCovers[key];
+  if(!removed) return;
+  delete movieCovers[key];
+  renderMovies();
+  await saveAll();
+  showUndoToast('Portada eliminada.', async () => {
+    movieCovers[key] = removed;
+    renderMovies();
+    await saveAll();
+  });
+}
+window.openMovieCoverPicker = openMovieCoverPicker;
+window.removeMovieCover = removeMovieCover;
+
+document.getElementById('movieCoverFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !pendingCoverMovie) return;
+  try{
+    const dataUrl = await resizeImageToDataUrl(file, 200, 0.78);
+    movieCovers[seriesKey(pendingCoverMovie)] = dataUrl;
+    await saveAll();
+    renderMovies();
+  }catch(err){ console.error('No se pudo procesar la portada', err); }
+  pendingCoverMovie = null;
+});
+
+document.getElementById('btnMovieCover').addEventListener('click', () => {
+  const errEl = document.getElementById('movieErrMsg');
+  const title = document.getElementById('mTitle').value.trim();
+  if(!title){
+    errEl.textContent = 'Escribe primero el título de la película para poder elegirle portada.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  openMovieCoverPicker(title);
+});
+
+/* ========================= MOVIES: música de carpeta ========================= */
+function openMovieMusicPicker(name){
+  pendingMusicMovie = name;
+  document.getElementById('movieAudioFileInput').click();
+}
+async function removeMovieFolderMusic(name){
+  const key = seriesKey(name);
+  const removed = movieFolderMusic[key];
+  if(!removed) return;
+  delete movieFolderMusic[key];
+  stopFolderMusic('movie:' + key);
+  renderMovies();
+  await saveAll();
+  showUndoToast('Música de la carpeta eliminada.', async () => {
+    movieFolderMusic[key] = removed;
+    renderMovies();
+    await saveAll();
+  });
+}
+window.openMovieMusicPicker = openMovieMusicPicker;
+window.removeMovieFolderMusic = removeMovieFolderMusic;
+
+document.getElementById('movieAudioFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !pendingMusicMovie) return;
+  if(file.size > MAX_AUDIO_BYTES){
+    alert('Ese archivo de audio es muy pesado (más de 6MB). Elige un clip más corto o liviano para que se pueda guardar.');
+    pendingMusicMovie = null;
+    return;
+  }
+  try{
+    const dataUrl = await readFileAsDataUrl(file);
+    movieFolderMusic[seriesKey(pendingMusicMovie)] = { name: file.name, dataUrl };
+    await saveAll();
+    renderMovies();
+  }catch(err){ console.error('No se pudo procesar el audio', err); }
+  pendingMusicMovie = null;
+});
+
+/* ========================= MOVIES: expand / CRUD ========================= */
+function toggleMovieExpand(name){
+  const key = seriesKey(name);
+  if(expandedMovies.has(key)){
+    expandedMovies.delete(key);
+    stopFolderMusic('movie:' + key);
+  } else {
+    expandedMovies.add(key);
+    playFolderMusic('movie:' + key, (movieFolderMusic[key] || {}).dataUrl);
+  }
+  renderMovies();
+}
+window.toggleMovieExpand = toggleMovieExpand;
+
+async function deleteMovieEntry(id){
+  const idx = movieEntries.findIndex(e => e.id === id);
+  if(idx === -1) return;
+  const removed = movieEntries[idx];
+  movieEntries.splice(idx, 1);
+  renderMovies();
+  await saveAll();
+  showUndoToast('Visionado eliminado.', async () => {
+    movieEntries.splice(idx, 0, removed);
+    renderMovies();
+    await saveAll();
+  });
+}
+window.deleteMovieEntry = deleteMovieEntry;
+
+function startMovieEdit(id){
+  const entry = movieEntries.find(en => en.id === id);
+  if(entry) expandedMovies.add(seriesKey(entry.title));
+  editingMovieId = id;
+  renderMovies();
+}
+function cancelMovieEdit(){ editingMovieId = null; renderMovies(); }
+async function saveMovieEdit(id){
+  const card = document.querySelector(`.entry-card[data-movie-id="${id}"]`);
+  const entry = movieEntries.find(en => en.id === id);
+  if(!card || !entry) return;
+  const dateUnknown = card.querySelector('.edit-date-unknown').checked;
+  entry.date = dateUnknown ? '' : displayToIso(card.querySelector('.edit-date').value);
+  entry.time = dateUnknown ? '' : card.querySelector('.edit-time').value;
+  entry.rating = parseInt(card.querySelector('.edit-rating').value) || 0;
+  entry.rewatch = card.querySelector('.edit-rewatch').checked;
+  entry.note = card.querySelector('.edit-note').value.trim();
+  editingMovieId = null;
+  renderMovies();
+  await saveAll();
+}
+window.startMovieEdit = startMovieEdit;
+window.cancelMovieEdit = cancelMovieEdit;
+window.saveMovieEdit = saveMovieEdit;
+
+function updateMovieList(){
+  const list = document.getElementById('movieList');
+  const names = [...new Set(movieEntries.map(e => e.title.trim()))].sort((a,b) => a.localeCompare(b));
+  list.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
+}
+
+function renderMovies(){
+  updateMovieList();
+  const container = document.getElementById('movieLogContainer');
+  const search = document.getElementById('mSearch').value.trim().toLowerCase();
+
+  if(movieEntries.length === 0){
+    container.innerHTML = `<div class="empty-state"><span class="big">Cartelera vacía</span>Todavía no hay películas registradas.<br>Registra la primera arriba.</div>`;
+    updateGlobalStats();
+    return;
+  }
+
+  const genreFilter = document.getElementById('mGenreFilter').value;
+  const typeFilter = document.getElementById('mTypeFilter').value;
+
+  const sortedAll = [...movieEntries].sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  const filtered = sortedAll.filter(e => {
+    if(search && !e.title.toLowerCase().includes(search)) return false;
+    if(genreFilter !== 'todos' && !getMovieGenreList(e.title).includes(genreFilter)) return false;
+    if(typeFilter !== 'todos' && getMovieType(e.title) !== typeFilter) return false;
+    return true;
+  });
+
+  if(filtered.length === 0){
+    container.innerHTML = `<div class="empty-state"><span class="big">Sin resultados</span>No hay películas que coincidan con la búsqueda.</div>`;
+    updateGlobalStats();
+    return;
+  }
+
+  const groups = {}; const order = [];
+  filtered.forEach(e => {
+    const key = e.title.trim();
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(e);
+  });
+
+  const sortMode = document.getElementById('mSortFilter').value;
+  if(sortMode === 'nombre'){
+    order.sort((a,b) => a.localeCompare(b, 'es', {sensitivity:'base'}));
+  } else if(sortMode === 'calificacion'){
+    order.sort((a,b) => avgRatingOf(groups[b]) - avgRatingOf(groups[a]));
+  }
+
+  container.innerHTML = order.map(title => {
+    const items = groups[title].sort((a,b) => sortKeyOf(a).localeCompare(sortKeyOf(b)));
+    const isOpen = expandedMovies.has(seriesKey(title));
+    const cover = movieCovers[seriesKey(title)] || null;
+
+    const cards = items.map((e, idx) => {
+      if(e.id === editingMovieId){
+        const ratingOptions = [0,1,2,3,4,5].map(v =>
+          `<option value="${v}" ${e.rating == v ? 'selected' : ''}>${v === 0 ? 'Sin calif.' : '★'.repeat(v)}</option>`
+        ).join('');
+        return `
+          <div class="entry-card editing" data-movie-id="${e.id}">
+            <div class="edit-grid movie-grid">
+              <div class="edit-field"><label>Fecha</label><input type="text" class="edit-date" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)" value="${e.date ? isoToDisplay(e.date) : ''}" ${!e.date ? 'disabled' : ''}></div>
+              <div class="edit-field"><label>Hora</label><input type="time" class="edit-time" value="${e.time || ''}" ${!e.date ? 'disabled' : ''}></div>
+            </div>
+            <label class="checkbox-row-inline edit-line">
+              <input type="checkbox" class="edit-date-unknown" ${!e.date ? 'checked' : ''}
+                onchange="const c=this.closest('.entry-card'); c.querySelector('.edit-date').disabled=this.checked; c.querySelector('.edit-time').disabled=this.checked;">
+              No recuerdo la fecha/hora exacta
+            </label>
+            <div class="edit-field full"><label>Calificación</label><select class="edit-rating">${ratingOptions}</select></div>
+            <label class="checkbox-row-inline edit-line"><input type="checkbox" class="edit-rewatch" ${e.rewatch ? 'checked' : ''}> 🔁 Es un rewatch</label>
+            <div class="edit-field full"><label>Nota</label><textarea class="edit-note">${escapeHtml(e.note || '')}</textarea></div>
+            <div class="edit-actions">
+              <button class="btn-mini save" onclick="saveMovieEdit('${e.id}')">✔ Guardar</button>
+              <button class="btn-mini" onclick="cancelMovieEdit()">✕ Cancelar</button>
+            </div>
+          </div>`;
+      }
+      const stars = starString(e.rating);
+      const tag = items.length > 1 ? `Visionado ${idx + 1}` : 'Visionado';
+      return `
+        <div class="entry-card movie-entry" data-movie-id="${e.id}">
+          <div class="entry-left">
+            <div class="entry-tag-row">
+              <span class="entry-tag">${tag}</span>
+              ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
+              ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+            </div>
+            <div class="entry-time">${fmtDate(e.date, e.time)}</div>
+            ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
+          </div>
+          <div class="entry-actions">
+            <button class="del-btn" onclick="startMovieEdit('${e.id}')" title="Editar">✎</button>
+            <button class="del-btn" onclick="deleteMovieEntry('${e.id}')" title="Eliminar registro">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const groupGenre = getMovieGenre(title);
+    const groupType = getMovieType(title);
+    const music = movieFolderMusic[seriesKey(title)] || null;
+    const isPlaying = currentAudioKey === 'movie:' + seriesKey(title);
+
+    return `
+      <div class="series-group">
+        <div class="series-header" onclick="toggleMovieExpand(decodeURIComponent('${encodeURIComponent(title)}'))">
+          <div class="series-name">
+            <span class="series-chevron ${isOpen ? 'open' : ''}">▸</span>
+            <span class="series-cover ${cover ? '' : 'empty'}"
+                  style="${cover ? `background-image:url('${cover}')` : ''}"
+                  onclick="event.stopPropagation(); openMovieCoverPicker(decodeURIComponent('${encodeURIComponent(title)}'))"
+                  title="${cover ? 'Cambiar portada' : 'Agregar portada'}">${cover ? '' : '🖼️'}</span>
+            ${escapeHtml(title)} <span class="badge">${items.length} ${items.length === 1 ? 'visionado' : 'visionados'}</span>
+            ${cover ? `<span class="remove-cover" onclick="event.stopPropagation(); removeMovieCover(decodeURIComponent('${encodeURIComponent(title)}'))" title="Quitar portada">✕</span>` : ''}
+          </div>
+          <div class="header-tags">
+            ${tagsHtml(groupGenre, groupType)}
+            <span class="genre-edit-btn" onclick="event.stopPropagation(); openGenreModal('movie', decodeURIComponent('${encodeURIComponent(title)}'))" title="Editar género y tipo">🏷️✎</span>
+            ${isPlaying ? `<span class="music-playing-indicator"><span class="dot"></span>sonando</span>` : ''}
+            <span class="music-btn ${music ? 'has' : ''}"
+                  onclick="event.stopPropagation(); openMovieMusicPicker(decodeURIComponent('${encodeURIComponent(title)}'))"
+                  title="${music ? 'Cambiar música de la carpeta: ' + escapeHtml(music.name) : 'Elegir música para esta carpeta'}">🎵</span>
+            ${music ? `<span class="remove-music" onclick="event.stopPropagation(); removeMovieFolderMusic(decodeURIComponent('${encodeURIComponent(title)}'))" title="Quitar música">✕</span>` : ''}
+          </div>
+        </div>
+        <div class="entries-collapse ${isOpen ? 'open' : ''}">${cards}</div>
+      </div>`;
+  }).join('');
+
+  updateGlobalStats();
+}
+document.getElementById('mSearch').addEventListener('input', renderMovies);
+document.getElementById('mGenreFilter').addEventListener('change', renderMovies);
+document.getElementById('mTypeFilter').addEventListener('change', renderMovies);
+document.getElementById('mSortFilter').addEventListener('change', renderMovies);
+
+/* ========================= MOVIES: main form ========================= */
+function setMovieRating(v){
+  currentMovieRating = v;
+  document.querySelectorAll('#movieStarPicker button').forEach(btn => {
+    btn.classList.toggle('on', parseInt(btn.dataset.v) <= v);
+  });
+}
+document.getElementById('movieStarPicker').addEventListener('click', (e) => {
+  if(e.target.tagName === 'BUTTON') setMovieRating(parseInt(e.target.dataset.v));
+});
+document.getElementById('movieClearStar').addEventListener('click', () => setMovieRating(0));
+
+document.getElementById('mDateUnknown').addEventListener('change', (e) => {
+  document.getElementById('mFecha').disabled = e.target.checked;
+  document.getElementById('mHora').disabled = e.target.checked;
+});
+
+async function addMovieEntry(){
+  const title = document.getElementById('mTitle').value.trim();
+  const errEl = document.getElementById('movieErrMsg');
+  if(!title){ errEl.textContent = 'Escribe al menos el título de la película.'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('btnAddMovie');
+  btn.disabled = true;
+
+  const dateUnknown = document.getElementById('mDateUnknown').checked;
+  movieEntries.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    title,
+    date: dateUnknown ? '' : displayToIso(document.getElementById('mFecha').value),
+    time: dateUnknown ? '' : document.getElementById('mHora').value,
+    rating: currentMovieRating,
+    rewatch: document.getElementById('mRewatch').checked,
+    note: document.getElementById('mNota').value.trim()
+  });
+
+  const mKey = seriesKey(title);
+  const mGeneroVal = document.getElementById('mGenero').value;
+  const mTipoVal = document.getElementById('mTipo').value;
+  const mDuracionVal = parseInt(document.getElementById('mDuracion').value, 10);
+  if(mGeneroVal){ movieGenres[mKey] = movieGenres[mKey] || []; if(!movieGenres[mKey].includes(mGeneroVal)) movieGenres[mKey].push(mGeneroVal); }
+  if(mTipoVal) movieTypes[mKey] = mTipoVal;
+  if(mDuracionVal > 0) movieDuration[mKey] = mDuracionVal;
+
+  renderMovies();
+  await saveAll();
+
+  document.getElementById('mTitle').value = '';
+  document.getElementById('mNota').value = '';
+  document.getElementById('mGenero').value = '';
+  document.getElementById('mTipo').value = '';
+  document.getElementById('mDuracion').value = '';
+  document.getElementById('mDateUnknown').checked = false;
+  document.getElementById('mFecha').disabled = false;
+  document.getElementById('mHora').disabled = false;
+  document.getElementById('mRewatch').checked = false;
+  setMovieRating(0);
+  nowDefaults('m');
+  document.getElementById('mTitle').focus();
+  btn.disabled = false;
+}
+document.getElementById('btnAddMovie').addEventListener('click', addMovieEntry);
+
+/* ========================= MOVIES: pendientes ========================= */
+function renderMoviePending(){
+  document.getElementById('moviePendingCount').textContent = moviePending.length;
+  const wrap = document.getElementById('moviePendingList');
+  if(moviePending.length === 0){
+    wrap.innerHTML = `<div class="pending-empty">No tienes películas pendientes todavía. Agrega alguna arriba.</div>`;
+    return;
+  }
+  wrap.innerHTML = moviePending.map(p => {
+    const age = timeAgo(p.addedAt);
+    return `
+    <div class="pending-item">
+      <div class="pending-info">
+        <div class="pending-name">📌 ${escapeHtml(p.title)}</div>
+        ${p.note ? `<div class="pending-note">"${escapeHtml(p.note)}"</div>` : ''}
+        ${age ? `<div class="pending-age ${age.stale ? 'stale' : ''}">${age.stale ? '⏳ ' : ''}${age.text}</div>` : ''}
+      </div>
+      <div class="pending-actions">
+        <button class="btn-mini start" onclick="startWatchingMoviePending('${p.id}')" title="Ya la vi">🎬 Ya la vi</button>
+        <button class="del-btn" onclick="removeMoviePending('${p.id}')" title="Quitar de pendientes">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function removeMoviePending(id){
+  const idx = moviePending.findIndex(p => p.id === id);
+  if(idx === -1) return;
+  const removed = moviePending[idx];
+  moviePending.splice(idx, 1);
+  renderMoviePending();
+  await saveAll();
+  showUndoToast('Quitada de pendientes.', async () => {
+    moviePending.splice(idx, 0, removed);
+    renderMoviePending();
+    await saveAll();
+  });
+}
+async function startWatchingMoviePending(id){
+  const p = moviePending.find(x => x.id === id);
+  if(!p) return;
+  moviePending = moviePending.filter(x => x.id !== id);
+  renderMoviePending();
+  await saveAll();
+  switchMovieSub('log');
+  document.getElementById('mTitle').value = p.title;
+  document.getElementById('mTitle').scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('mTitle').focus();
+}
+window.removeMoviePending = removeMoviePending;
+window.startWatchingMoviePending = startWatchingMoviePending;
+
+document.getElementById('btnAddMoviePending').addEventListener('click', async () => {
+  const nameInput = document.getElementById('pmName');
+  const noteInput = document.getElementById('pmNote');
+  const title = nameInput.value.trim();
+  if(!title) return;
+  moviePending.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,7), title, note: noteInput.value.trim(), addedAt: Date.now() });
+  nameInput.value = ''; noteInput.value = '';
+  renderMoviePending();
+  await saveAll();
+  nameInput.focus();
+});
+
+/* ========================= RANKINGS ========================= */
+function ratingBadge(r){
+  if(r >= 4) return '<span class="rating-badge good">👍 Bien</span>';
+  if(r === 3) return '<span class="rating-badge meh">😐 Meh</span>';
+  return '<span class="rating-badge bad">👎 Mal</span>';
+}
+
+function rankingSeriesCard(e){
+  const cover = covers[seriesKey(e.serie)] || null;
+  const tParts = [];
+  if(e.season !== '' && e.season != null) tParts.push(`T${pad(e.season)}`);
+  if(e.episode !== '' && e.episode != null) tParts.push(`E${pad(e.episode)}`);
+  const tag = tParts.length ? tParts.join(' ') : 'Sin especificar';
+  return `
+    <div class="ranking-card">
+      <span class="ranking-cover ${cover ? '' : 'empty'}" style="${cover ? `background-image:url('${cover}')` : ''}">${cover ? '' : '📺'}</span>
+      <div class="ranking-info">
+        <div class="ranking-title">${escapeHtml(e.serie)}<span class="entry-tag">${tag}</span></div>
+        <div class="entry-tag-row">
+          <span class="entry-stars">${starString(e.rating)}</span>
+          ${ratingBadge(e.rating)}
+          ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+        </div>
+        <div class="entry-time">${fmtDate(e.date, e.time)}</div>
+        ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function rankingMovieCard(e){
+  const cover = movieCovers[seriesKey(e.title)] || null;
+  return `
+    <div class="ranking-card">
+      <span class="ranking-cover ${cover ? '' : 'empty'}" style="${cover ? `background-image:url('${cover}')` : ''}">${cover ? '' : '🎬'}</span>
+      <div class="ranking-info">
+        <div class="ranking-title">${escapeHtml(e.title)}</div>
+        <div class="entry-tag-row">
+          <span class="entry-stars">${starString(e.rating)}</span>
+          ${ratingBadge(e.rating)}
+          ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+        </div>
+        <div class="entry-time">${fmtDate(e.date, e.time)}</div>
+        ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderRankingGroup(items, bestId, worstId, cardFn, label){
+  const bestEl = document.getElementById(bestId);
+  const worstEl = document.getElementById(worstId);
+  if(items.length <= 10){
+    bestEl.innerHTML = `<div class="empty-state"><span class="big">Todavía no hay suficiente data</span>Necesitas más de 10 ${label} calificados para desbloquear el ranking (llevas ${items.length}).</div>`;
+    worstEl.innerHTML = '';
+    return;
+  }
+  const recent = [...items].sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  const best = [...recent].sort((a,b) => b.rating - a.rating).slice(0, 10);
+  const worst = [...recent].sort((a,b) => a.rating - b.rating).slice(0, 10);
+  bestEl.innerHTML = best.map(cardFn).join('');
+  worstEl.innerHTML = worst.map(cardFn).join('');
+}
+
+function renderRankings(){
+  const search = document.getElementById('rankSearch').value.trim().toLowerCase();
+  const genreFilter = document.getElementById('rankGenreFilter').value;
+
+  const ratedSeries = entries.filter(e =>
+    e.rating > 0 &&
+    (!search || e.serie.toLowerCase().includes(search)) &&
+    (genreFilter === 'todos' || getGenreList(e.serie).includes(genreFilter))
+  );
+  const ratedMovies = movieEntries.filter(e =>
+    e.rating > 0 &&
+    (!search || e.title.toLowerCase().includes(search)) &&
+    (genreFilter === 'todos' || getMovieGenreList(e.title).includes(genreFilter))
+  );
+  renderRankingGroup(ratedSeries, 'rankSeriesBest', 'rankSeriesWorst', rankingSeriesCard, 'capítulos');
+  renderRankingGroup(ratedMovies, 'rankMoviesBest', 'rankMoviesWorst', rankingMovieCard, 'películas');
+}
+document.getElementById('rankSearch').addEventListener('input', renderRankings);
+document.getElementById('rankGenreFilter').addEventListener('change', renderRankings);
+
+/* ========================= MAPA DE ACTIVIDAD (heatmap) ========================= */
+const WEEKDAY_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function activityDateMap(){
+  // fecha (YYYY-MM-DD) -> [{type:'serie'|'movie', label}]
+  const map = {};
+  entries.forEach(e => {
+    if(!e.date) return;
+    const tParts = [];
+    if(e.season !== '' && e.season != null) tParts.push(`T${pad(e.season)}`);
+    if(e.episode !== '' && e.episode != null) tParts.push(`E${pad(e.episode)}`);
+    const tag = tParts.length ? tParts.join(' ') : '';
+    (map[e.date] = map[e.date] || []).push({ type:'serie', label: `📺 ${e.serie}${tag ? ' — ' + tag : ''}` });
+  });
+  movieEntries.forEach(e => {
+    if(!e.date) return;
+    (map[e.date] = map[e.date] || []).push({ type:'movie', label: `🎬 ${e.title}` });
+  });
+  return map;
+}
+
+function availableActivityYears(){
+  const all = [...entries, ...movieEntries].filter(e => e.date).map(e => parseInt(e.date.slice(0,4), 10));
+  const nowYear = new Date().getFullYear();
+  if(!all.length) return [nowYear];
+  return [Math.min(...all, nowYear), Math.max(...all, nowYear)];
+}
+
+function levelForCount(n){
+  if(n <= 0) return 0;
+  if(n === 1) return 1;
+  if(n <= 3) return 2;
+  if(n <= 6) return 3;
+  return 4;
+}
+
+function renderActivity(){
+  const dateMap = activityDateMap();
+  const [minYear, maxYear] = availableActivityYears();
+  if(activityYear === null) activityYear = maxYear;
+  activityYear = Math.max(minYear, Math.min(maxYear, activityYear));
+
+  document.getElementById('activityYearLabel').textContent = activityYear;
+  document.getElementById('activityPrevYear').disabled = activityYear <= minYear;
+  document.getElementById('activityNextYear').disabled = activityYear >= maxYear;
+
+  const yearStart = new Date(activityYear, 0, 1);
+  const yearEnd = new Date(activityYear, 11, 31);
+  // Empezamos la grilla en el domingo anterior (o igual) al 1 de enero, como GitHub
+  const gridStart = new Date(yearStart);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+
+  const weeks = [];
+  let cursor = new Date(gridStart);
+  let totalCount = 0;
+  while(cursor <= yearEnd){
+    const week = [];
+    for(let d = 0; d < 7; d++){
+      const inYear = cursor.getFullYear() === activityYear;
+      const dateStr = `${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
+      const count = inYear ? (dateMap[dateStr] || []).length : 0;
+      if(inYear) totalCount += count;
+      week.push({ dateStr, count, inYear, monthStart: inYear && cursor.getDate() === 1 ? cursor.getMonth() : null });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  // Etiquetas de mes: una por cada semana donde empieza un mes nuevo
+  const monthsHtml = weeks.map(week => {
+    const found = week.find(d => d.monthStart !== null);
+    return `<span class="activity-month-label" style="width:11px;">${found ? MONTH_NAMES[found.monthStart].slice(0,3) : ''}</span>`;
+  }).join('');
+  document.getElementById('activityMonths').innerHTML = monthsHtml;
+
+  document.getElementById('activityGrid').innerHTML = weeks.map(week => `
+    <div class="activity-week">
+      ${week.map(d => {
+        if(!d.inYear) return `<span class="activity-day empty"></span>`;
+        const lvl = levelForCount(d.count);
+        const selected = d.dateStr === activitySelectedDate ? 'selected' : '';
+        return `<span class="activity-day ${lvl > 0 ? 'level-'+lvl : ''} ${selected}" data-date="${d.dateStr}" title="${fmtDate(d.dateStr)}: ${d.count} ${d.count === 1 ? 'registro' : 'registros'}" onclick="showActivityDetail('${d.dateStr}')"></span>`;
+      }).join('')}
+    </div>`).join('');
+
+  document.getElementById('activityTotal').innerHTML = `<b>${totalCount}</b> ${totalCount === 1 ? 'registro' : 'registros'} en ${activityYear}`;
+
+  if(activitySelectedDate){
+    renderActivityDetail(activitySelectedDate, dateMap[activitySelectedDate] || []);
+  }
+
+  renderTrendChart();
+  renderGenreBreakdown();
+}
+
+function renderGenreBreakdown(){
+  const container = document.getElementById('genreBreakdownContainer');
+  const yearEntries = entries.filter(e => e.date && e.date.slice(0,4) === String(activityYear));
+  const yearMovieEntries = movieEntries.filter(e => e.date && e.date.slice(0,4) === String(activityYear));
+
+  const counts = {};
+  yearEntries.forEach(e => { getGenreList(e.serie).forEach(g => { counts[g] = (counts[g] || 0) + 1; }); });
+  yearMovieEntries.forEach(e => { getMovieGenreList(e.title).forEach(g => { counts[g] = (counts[g] || 0) + 1; }); });
+
+  const total = Object.values(counts).reduce((a,b) => a + b, 0);
+  if(!total){
+    container.innerHTML = `<div class="trend-empty">No hay géneros registrados en ${activityYear} todavía. Asígnale género a tus series/películas para ver este gráfico.</div>`;
+    return;
+  }
+
+  const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+  container.innerHTML = sorted.map(([genre, count]) => {
+    const pct = Math.round((count / total) * 100);
+    return `
+      <div class="genre-bar-row">
+        <div class="genre-bar-name" title="${escapeHtml(genre)}">${escapeHtml(genre)}</div>
+        <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${pct}%"></div></div>
+        <div class="genre-bar-pct">${pct}% · ${count}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ========================= LOGROS ========================= */
+function maxDailyCount(){
+  const counts = {};
+  entries.forEach(e => { if(e.date) counts[e.date] = (counts[e.date] || 0) + 1; });
+  movieEntries.forEach(e => { if(e.date) counts[e.date] = (counts[e.date] || 0) + 1; });
+  return Object.values(counts).reduce((m,v) => Math.max(m,v), 0);
+}
+function completedSeriesCount(){
+  const names = new Set(entries.map(e => e.serie.trim()));
+  let count = 0;
+  names.forEach(n => { if(getStatus(n) === 'terminada') count++; });
+  return count;
+}
+function totalRewatchCount(){
+  return entries.filter(e => e.rewatch).length + movieEntries.filter(e => e.rewatch).length;
+}
+function nightOwlCount(){
+  const isNight = (t) => { if(!t) return false; const h = parseInt(t.split(':')[0], 10); return h >= 0 && h < 5; };
+  return entries.filter(e => isNight(e.time)).length + movieEntries.filter(e => isNight(e.time)).length;
+}
+function distinctGenreCount(){
+  const set = new Set();
+  Object.values(genres).forEach(arr => (arr || []).forEach(g => set.add(g)));
+  Object.values(movieGenres).forEach(arr => (arr || []).forEach(g => set.add(g)));
+  return set.size;
+}
+function distinctSeriesCount(){
+  return new Set(entries.map(e => e.serie.trim().toLowerCase())).size;
+}
+function totalMoviesCount(){
+  return movieEntries.length;
+}
+function ratedItemsCount(){
+  return entries.filter(e => e.rating > 0).length + movieEntries.filter(e => e.rating > 0).length;
+}
+function longestStreak(){
+  const daySet = new Set();
+  entries.forEach(e => { if(e.date) daySet.add(e.date); });
+  movieEntries.forEach(e => { if(e.date) daySet.add(e.date); });
+  const days = [...daySet].sort();
+  if(!days.length) return 0;
+  let longest = 1, current = 1;
+  for(let i = 1; i < days.length; i++){
+    const diffDays = Math.round((new Date(days[i]) - new Date(days[i-1])) / 86400000);
+    if(diffDays === 1){ current++; longest = Math.max(longest, current); }
+    else if(diffDays > 1){ current = 1; }
+  }
+  return longest;
+}
+
+const ACHIEVEMENTS = [
+  { id:'maraton', icon:'🔥', name:'Maratonista', tiers:[4,8,15], compute:maxDailyCount,
+    desc:(t) => `Ver ${t}+ episodios o películas en un mismo día` },
+  { id:'completista', icon:'✅', name:'Completista', tiers:[1,5,15], compute:completedSeriesCount,
+    desc:(t) => `Marcar ${t} serie${t > 1 ? 's' : ''} como "Terminada"` },
+  { id:'nostalgico', icon:'💜', name:'Nostálgico', tiers:[5,15,30], compute:totalRewatchCount,
+    desc:(t) => `Acumular ${t} rewatches entre series y películas` },
+  { id:'buho', icon:'🌙', name:'Búho nocturno', tiers:[1,10,25], compute:nightOwlCount,
+    desc:(t) => `Registrar ${t} episodios/películas vistos entre medianoche y las 5am` },
+  { id:'explorador', icon:'🎭', name:'Explorador de géneros', tiers:[3,6,10], compute:distinctGenreCount,
+    desc:(t) => `Ver contenido de ${t} géneros distintos` },
+  { id:'coleccionista', icon:'📚', name:'Coleccionista', tiers:[5,15,30], compute:distinctSeriesCount,
+    desc:(t) => `Registrar ${t} series distintas` },
+  { id:'cinefilo', icon:'🎬', name:'Cinéfilo', tiers:[10,30,60], compute:totalMoviesCount,
+    desc:(t) => `Ver ${t} películas` },
+  { id:'critico', icon:'⭐', name:'Crítico', tiers:[10,30,75], compute:ratedItemsCount,
+    desc:(t) => `Calificar ${t} episodios/películas` },
+  { id:'racha', icon:'🔗', name:'Racha imparable', tiers:[3,7,14], compute:longestStreak,
+    desc:(t) => `Mantener una racha de ${t} días seguidos viendo algo` }
+];
+const ACHV_TIER_LABELS = ['Bronce','Plata','Oro'];
+
+function computeAchievementState(a){
+  const value = a.compute();
+  let tierIndex = -1;
+  for(let i = 0; i < a.tiers.length; i++){ if(value >= a.tiers[i]) tierIndex = i; }
+  const nextTarget = (tierIndex + 1 < a.tiers.length) ? a.tiers[tierIndex + 1] : null;
+  return { value, tierIndex, unlocked: tierIndex >= 0, nextTarget };
+}
+
+function renderAchievements(){
+  const states = ACHIEVEMENTS.map(a => ({ a, s: computeAchievementState(a) }));
+  const unlockedCount = states.filter(x => x.s.unlocked).length;
+
+  document.getElementById('achievementsSummary').innerHTML =
+    `<div class="achv-summary-big">${unlockedCount}/${ACHIEVEMENTS.length}<small>logros desbloqueados</small></div>`;
+
+  document.getElementById('achievementsGrid').innerHTML = states.map(({a, s}) => {
+    const tierLabel = s.tierIndex >= 0 ? ACHV_TIER_LABELS[s.tierIndex] : null;
+    const maxTarget = a.tiers[a.tiers.length - 1];
+    const target = s.nextTarget !== null ? s.nextTarget : maxTarget;
+    const pct = Math.min(100, Math.round((s.value / target) * 100));
+    const dots = a.tiers.map((_, i) => `<span class="achv-badge-dot ${i <= s.tierIndex ? 'on' : ''}"></span>`).join('');
+
+    return `
+      <div class="achv-card ${s.unlocked ? 'unlocked' : 'locked'}">
+        <div class="achv-badge-tiers">${dots}</div>
+        <div class="achv-top">
+          <div class="achv-icon">${a.icon}</div>
+          <div>
+            <div class="achv-name">${a.name}</div>
+            ${tierLabel ? `<div class="achv-tier-label">${tierLabel}</div>` : ''}
+          </div>
+        </div>
+        <div class="achv-desc">${a.desc(target)}</div>
+        ${s.nextTarget !== null
+          ? `<div class="achv-progress-track"><div class="achv-progress-fill" style="width:${pct}%"></div></div>
+             <div class="achv-progress-label">${s.value}/${s.nextTarget}</div>`
+          : `<div class="achv-progress-label">🏆 Nivel máximo alcanzado (${s.value})</div>`}
+      </div>`;
+  }).join('');
+}
+
+function computeMonthlyTotals(year){
+  const totals = new Array(12).fill(0);
+  entries.forEach(e => { if(e.date && e.date.slice(0,4) === String(year)) totals[parseInt(e.date.slice(5,7),10) - 1]++; });
+  movieEntries.forEach(e => { if(e.date && e.date.slice(0,4) === String(year)) totals[parseInt(e.date.slice(5,7),10) - 1]++; });
+  return totals;
+}
+
+function renderTrendChart(){
+  const container = document.getElementById('trendChartContainer');
+  const current = computeMonthlyTotals(activityYear);
+  const previous = computeMonthlyTotals(activityYear - 1);
+  const hasPrevious = previous.some(v => v > 0);
+  const hasCurrent = current.some(v => v > 0);
+
+  if(!hasCurrent && !hasPrevious){
+    container.innerHTML = `<div class="trend-empty">No hay suficientes datos con fecha para mostrar la tendencia.</div>`;
+    return;
+  }
+
+  const maxVal = Math.max(1, ...current, ...(hasPrevious ? previous : [0]));
+  const W = 640, H = 200, padL = 18, padR = 10, padT = 14, padB = 24;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const stepX = plotW / 11;
+  const scaleY = v => padT + plotH - (v / maxVal) * plotH;
+  const pointsFor = arr => arr.map((v,i) => `${(padL + i*stepX).toFixed(1)},${scaleY(v).toFixed(1)}`).join(' ');
+
+  const currentPoints = pointsFor(current);
+  const previousPoints = hasPrevious ? pointsFor(previous) : null;
+  const circles = current.map((v,i) => `<circle cx="${(padL+i*stepX).toFixed(1)}" cy="${scaleY(v).toFixed(1)}" r="3.5" fill="var(--tape)"><title>${MONTH_NAMES[i]}: ${v}</title></circle>`).join('');
+  const monthLabels = MONTH_NAMES.map((m,i) => `<text x="${(padL+i*stepX).toFixed(1)}" y="${H-6}" font-size="9" fill="var(--text-dim)" text-anchor="middle">${m.slice(0,3)}</text>`).join('');
+
+  container.innerHTML = `
+    <svg class="trend-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      ${previousPoints ? `<polyline points="${previousPoints}" fill="none" stroke="#8b93a1" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"></polyline>` : ''}
+      <polyline points="${currentPoints}" fill="none" stroke="#4ade80" stroke-width="2.5"></polyline>
+      ${circles}
+      ${monthLabels}
+    </svg>
+    <div style="display:flex;gap:14px;font-size:10px;color:var(--text-dim);margin-top:6px;">
+      <span><span style="display:inline-block;width:10px;height:2px;background:#4ade80;vertical-align:middle;margin-right:4px;"></span>${activityYear}</span>
+      ${hasPrevious ? `<span><span style="display:inline-block;width:10px;height:2px;background:#8b93a1;vertical-align:middle;margin-right:4px;"></span>${activityYear - 1} (comparación)</span>` : ''}
+    </div>`;
+}
+
+function showActivityDetail(dateStr){
+  activitySelectedDate = dateStr;
+  const dateMap = activityDateMap();
+  document.querySelectorAll('.activity-day').forEach(el => el.classList.toggle('selected', el.dataset.date === dateStr));
+  renderActivityDetail(dateStr, dateMap[dateStr] || []);
+}
+window.showActivityDetail = showActivityDetail;
+
+function renderActivityDetail(dateStr, items){
+  const box = document.getElementById('activityDetail');
+  if(!items.length){
+    box.innerHTML = `<div class="activity-detail-title">${fmtDate(dateStr)}</div><div class="activity-detail-empty">No hay nada registrado ese día.</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="activity-detail-title">${fmtDate(dateStr)} · ${items.length} ${items.length === 1 ? 'registro' : 'registros'}</div>` +
+    items.map(it => `<div class="activity-detail-item">${escapeHtml(it.label)}</div>`).join('');
+}
+
+document.getElementById('activityPrevYear').addEventListener('click', () => { activityYear--; activitySelectedDate = null; renderActivity(); });
+document.getElementById('activityNextYear').addEventListener('click', () => { activityYear++; activitySelectedDate = null; renderActivity(); });
+
+/* ========================= MODAL: editar género / tipo ========================= */
+let genreModalTarget = null; // { type:'series'|'movie', name: string }
+
+function openGenreModal(type, name){
+  genreModalTarget = { type, name };
+  const currentGenres = type === 'series' ? getGenreList(name) : getMovieGenreList(name);
+  const currentType = type === 'series' ? getType(name) : getMovieType(name);
+  const currentDuration = type === 'series' ? (seriesDuration[seriesKey(name)] || '') : (movieDuration[seriesKey(name)] || '');
+
+  document.getElementById('genreModalTitle').textContent = `Género y tipo — ${name}`;
+  document.getElementById('genreCheckGrid').innerHTML = GENRES.map(g => `
+    <label class="genre-check-pill ${currentGenres.includes(g) ? 'checked' : ''}">
+      <input type="checkbox" value="${escapeHtml(g)}" ${currentGenres.includes(g) ? 'checked' : ''}
+        onchange="this.closest('label').classList.toggle('checked', this.checked)">
+      ${escapeHtml(g)}
+    </label>`).join('');
+  document.getElementById('genreModalType').value = currentType || '';
+  document.getElementById('genreModalDurationLabel').textContent = type === 'series' ? 'Duración por episodio (min)' : 'Duración de la película (min)';
+  document.getElementById('genreModalDuration').value = currentDuration;
+  document.getElementById('genreModalOverlay').style.display = 'flex';
+}
+
+function closeGenreModal(){
+  document.getElementById('genreModalOverlay').style.display = 'none';
+  genreModalTarget = null;
+}
+
+async function saveGenreModal(){
+  if(!genreModalTarget) return;
+  const { type, name } = genreModalTarget;
+  const key = seriesKey(name);
+  const selected = [...document.querySelectorAll('#genreCheckGrid input:checked')].map(i => i.value);
+  const typeVal = document.getElementById('genreModalType').value;
+  const durationVal = parseInt(document.getElementById('genreModalDuration').value, 10);
+
+  if(type === 'series'){
+    if(selected.length) genres[key] = selected; else delete genres[key];
+    if(typeVal) types[key] = typeVal; else delete types[key];
+    if(durationVal > 0) seriesDuration[key] = durationVal; else delete seriesDuration[key];
+    render();
+  } else {
+    if(selected.length) movieGenres[key] = selected; else delete movieGenres[key];
+    if(typeVal) movieTypes[key] = typeVal; else delete movieTypes[key];
+    if(durationVal > 0) movieDuration[key] = durationVal; else delete movieDuration[key];
+    renderMovies();
+  }
+  closeGenreModal();
+  await saveAll();
+}
+
+window.openGenreModal = openGenreModal;
+window.closeGenreModal = closeGenreModal;
+
+document.getElementById('genreModalClose').addEventListener('click', closeGenreModal);
+document.getElementById('genreModalSave').addEventListener('click', saveGenreModal);
+document.getElementById('genreModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'genreModalOverlay') closeGenreModal();
+});
+
+/* ========================= WRAPPED ========================= */
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function formatMonthLabel(ym){
+  const [y,m] = ym.split('-');
+  return `${MONTH_NAMES[parseInt(m,10)-1]} ${y}`;
+}
+
+let wrappedSlides = [];
+let wrappedIndex = 0;
+
+function getMusicPool(genreFilter){
+  const pool = [];
+  Object.keys(folderMusic).forEach(key => {
+    const g = genres[key] || [];
+    if(!genreFilter || g.includes(genreFilter)){
+      pool.push({ audioKey: 'series:' + key, dataUrl: folderMusic[key].dataUrl, songName: folderMusic[key].name });
+    }
+  });
+  Object.keys(movieFolderMusic).forEach(key => {
+    const g = movieGenres[key] || [];
+    if(!genreFilter || g.includes(genreFilter)){
+      pool.push({ audioKey: 'movie:' + key, dataUrl: movieFolderMusic[key].dataUrl, songName: movieFolderMusic[key].name });
+    }
+  });
+  return pool;
+}
+
+function pickRandomMusic(genreFilter){
+  let pool = getMusicPool(genreFilter);
+  // Si no hay canciones de ese género específico, no forzamos una de otro género: se queda en silencio.
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function getSpecificMusic(mediaType, name){
+  const key = seriesKey(name);
+  const store = mediaType === 'series' ? folderMusic : movieFolderMusic;
+  const entry = store[key];
+  if(!entry) return null;
+  return { audioKey: (mediaType === 'series' ? 'series:' : 'movie:') + key, dataUrl: entry.dataUrl, songName: entry.name };
+}
+
+function resolveSlideMusic(slide){
+  if(!slide.music) return null;
+  if(slide.music.type === 'specific') return getSpecificMusic(slide.music.mediaType, slide.music.name);
+  if(slide.music.type === 'genre') return pickRandomMusic(slide.music.genre);
+  if(slide.music.type === 'random') return pickRandomMusic(null);
+  return null;
+}
+
+function computeWrappedStats(year){
+  const yearEntries = year === 'all' ? entries : entries.filter(e => e.date && e.date.slice(0,4) === String(year));
+  const yearMovieEntries = year === 'all' ? movieEntries : movieEntries.filter(e => e.date && e.date.slice(0,4) === String(year));
+
+  const seriesNames = [...new Set(yearEntries.map(e => e.serie.trim()))];
+  const datedEntries = yearEntries.filter(e => e.date);
+
+  // Serie más vista: solo cuenta episodios con fecha registrada
+  const epCounts = {};
+  datedEntries.forEach(e => { const k = e.serie.trim(); epCounts[k] = (epCounts[k] || 0) + 1; });
+  let topSerie = null, topSerieCount = 0;
+  Object.entries(epCounts).forEach(([k,v]) => { if(v > topSerieCount){ topSerie = k; topSerieCount = v; } });
+
+  // Maratón: el mayor número de episodios de UNA serie vistos en UN mismo día
+  const dayCounts = {};
+  datedEntries.forEach(e => {
+    const k = e.serie.trim() + '|' + e.date;
+    dayCounts[k] = (dayCounts[k] || 0) + 1;
+  });
+  let topMarathonSerie = null, topMarathonDate = null, topMarathonCount = 0;
+  Object.entries(dayCounts).forEach(([k,v]) => {
+    if(v > topMarathonCount){
+      const [serie, date] = k.split('|');
+      topMarathonSerie = serie; topMarathonDate = date; topMarathonCount = v;
+    }
+  });
+
+  const genreCounts = {};
+  yearEntries.forEach(e => { getGenreList(e.serie).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }); });
+  yearMovieEntries.forEach(e => { getMovieGenreList(e.title).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }); });
+  let topGenre = null, topGenreCount = 0;
+  Object.entries(genreCounts).forEach(([k,v]) => { if(v > topGenreCount){ topGenre = k; topGenreCount = v; } });
+
+  const totalRewatch = yearEntries.filter(e => e.rewatch).length + yearMovieEntries.filter(e => e.rewatch).length;
+
+  const monthCounts = {};
+  [...yearEntries, ...yearMovieEntries].forEach(e => {
+    if(e.date){ const ym = e.date.slice(0,7); monthCounts[ym] = (monthCounts[ym] || 0) + 1; }
+  });
+  let topMonth = null, topMonthCount = 0;
+  Object.entries(monthCounts).forEach(([k,v]) => { if(v > topMonthCount){ topMonth = k; topMonthCount = v; } });
+
+  // Serie más vista dentro del mes más activo, con su portada
+  let topMonthSerie = null, topMonthSerieCount = 0, topMonthSerieCover = null;
+  if(topMonth){
+    const monthSerieCounts = {};
+    datedEntries.forEach(e => {
+      if(e.date.slice(0,7) === topMonth){
+        const k = e.serie.trim();
+        monthSerieCounts[k] = (monthSerieCounts[k] || 0) + 1;
+      }
+    });
+    Object.entries(monthSerieCounts).forEach(([k,v]) => { if(v > topMonthSerieCount){ topMonthSerie = k; topMonthSerieCount = v; } });
+    if(topMonthSerie) topMonthSerieCover = covers[seriesKey(topMonthSerie)] || null;
+  }
+
+  const ratedItems = [...yearEntries, ...yearMovieEntries].filter(e => e.rating > 0);
+  const avgRating = ratedItems.length ? (ratedItems.reduce((s,e) => s + e.rating, 0) / ratedItems.length) : 0;
+
+  const totalPending = pending.length + moviePending.length;
+
+  const totalMinutes =
+    yearEntries.reduce((sum, e) => {
+      const key = seriesKey(e.serie);
+      if(seriesDuration[key] > 0) return sum + seriesDuration[key];
+      const t = getType(e.serie);
+      const mins = t === 'live' ? settings.episodeLive : t === 'animada' ? settings.episodeAnimada : settings.episodeDefault;
+      return sum + mins;
+    }, 0) +
+    yearMovieEntries.reduce((sum, e) => {
+      const key = seriesKey(e.title);
+      if(movieDuration[key] > 0) return sum + movieDuration[key];
+      const t = getMovieType(e.title);
+      const mins = t === 'live' ? settings.movieLive : t === 'animada' ? settings.movieAnimada : settings.movieDefault;
+      return sum + mins;
+    }, 0);
+  const totalHours = totalMinutes / 60;
+
+  return {
+    totalEpisodes: yearEntries.length,
+    totalMovies: yearMovieEntries.length,
+    totalSeries: seriesNames.length,
+    topSerie, topSerieCount,
+    topMarathonSerie, topMarathonDate, topMarathonCount,
+    topGenre, topGenreCount,
+    totalRewatch,
+    topMonth, topMonthCount,
+    topMonthSerie, topMonthSerieCount, topMonthSerieCover,
+    avgRating, ratedCount: ratedItems.length,
+    totalPending,
+    totalHours
+  };
+}
+
+function buildWrappedSlides(s, year){
+  const slides = [];
+  const yearLabel = year === 'all' ? 'todo tu historial' : `tu ${year}`;
+
+  slides.push({
+    icon:'🎬', eyebrow: year === 'all' ? 'Tu bitácora en números' : `Tu ${year} en números`,
+    big:`${s.totalEpisodes + s.totalMovies}`,
+    sub:`registros en ${yearLabel} — ${s.totalEpisodes} capítulos y ${s.totalMovies} películas`,
+    music:{ type:'random' },
+    colorA:'#241a1f', colorB:'#0e1216'
+  });
+
+  if(s.totalHours > 0){
+    const days = s.totalHours / 24;
+    slides.push({
+      icon:'⏱️', eyebrow:'Tiempo estimado',
+      big:`${s.totalHours >= 100 ? Math.round(s.totalHours) : s.totalHours.toFixed(1)} horas`,
+      sub:`le dedicaste a esto en ${yearLabel}${days >= 1 ? ` — como ${days.toFixed(1)} días seguidos sin dormir` : ''} (estimado según la duración promedio de cada tipo)`,
+      music:{ type:'random' },
+      colorA:'#1a1f24', colorB:'#0e1216'
+    });
+  }
+
+  if(s.totalSeries > 0){
+    slides.push({
+      icon:'📺', eyebrow:'Series distintas',
+      big:`${s.totalSeries}`,
+      sub:'series distintas en tu registro',
+      music:{ type:'random' },
+      colorA:'#1a2420', colorB:'#0e1216'
+    });
+  }
+
+  if(s.topSerie){
+    slides.push({
+      icon:'👑', eyebrow:'Tu serie más vista',
+      big:s.topSerie,
+      sub:`${s.topSerieCount} ${s.topSerieCount === 1 ? 'episodio con fecha registrada' : 'episodios con fecha registrada'}`,
+      music:{ type:'specific', mediaType:'series', name:s.topSerie },
+      colorA:'#1a2420', colorB:'#0e1216'
+    });
+  }
+
+  if(s.topMarathonCount >= 2){
+    slides.push({
+      icon:'🍿', eyebrow:'Tu maratón más grande',
+      big:`${s.topMarathonCount} episodios`,
+      sub:`de "${s.topMarathonSerie}" en un solo día (${fmtDate(s.topMarathonDate)})`,
+      music:{ type:'specific', mediaType:'series', name:s.topMarathonSerie },
+      colorA:'#2e2416', colorB:'#0e1216'
+    });
+  }
+
+  if(s.topGenre){
+    slides.push({
+      icon:'🏷️', eyebrow:'Tu género favorito',
+      big:s.topGenre,
+      sub:`apareció ${s.topGenreCount} ${s.topGenreCount === 1 ? 'vez' : 'veces'} en lo que viste`,
+      music:{ type:'genre', genre:s.topGenre },
+      colorA:'#241a2e', colorB:'#0e1216'
+    });
+  }
+
+  if(s.totalRewatch > 0){
+    slides.push({
+      icon:'🔁', eyebrow:'Modo rewatch',
+      big:`${s.totalRewatch}`,
+      sub:`${s.totalRewatch === 1 ? 'vez volviste' : 'veces volviste'} a ver algo que ya conocías`,
+      music:{ type:'random' },
+      colorA:'#2e1a24', colorB:'#0e1216'
+    });
+  }
+
+  if(s.topMonth){
+    slides.push({
+      icon:'🔥', eyebrow:'Tu mes más activo',
+      big: formatMonthLabel(s.topMonth),
+      sub:`${s.topMonthCount} registros ese mes`,
+      music:{ type:'random' },
+      colorA:'#2e2416', colorB:'#0e1216'
+    });
+  }
+
+  if(s.topMonthSerie){
+    slides.push({
+      icon:'📅', eyebrow:`La serie del mes — ${formatMonthLabel(s.topMonth)}`,
+      big:s.topMonthSerie,
+      sub:`${s.topMonthSerieCount} ${s.topMonthSerieCount === 1 ? 'episodio ese mes' : 'episodios ese mes'}`,
+      coverImage: s.topMonthSerieCover,
+      music:{ type:'specific', mediaType:'series', name:s.topMonthSerie },
+      colorA:'#16242e', colorB:'#0e1216'
+    });
+  }
+
+  if(s.ratedCount > 0){
+    slides.push({
+      icon:'⭐', eyebrow:'Calificación promedio',
+      big:`${s.avgRating.toFixed(1)} / 5`,
+      sub:`basado en ${s.ratedCount} ${s.ratedCount === 1 ? 'registro calificado' : 'registros calificados'}`,
+      music:{ type:'random' },
+      colorA:'#242414', colorB:'#0e1216'
+    });
+  }
+
+  slides.push({
+    icon:'📌', eyebrow:'Lo que viene',
+    big:`${s.totalPending}`,
+    sub:'series y películas pendientes por ver',
+    colorA:'#16242e', colorB:'#0e1216'
+  });
+
+  slides.push({
+    icon:'✨', eyebrow:'Eso es todo',
+    big:'¡Gracias por llevar tu bitácora!',
+    sub:'Seguí registrando para que el próximo Wrapped tenga todavía más data.',
+    music:{ type:'random' },
+    colorA:'#1b2129', colorB:'#0e1216'
+  });
+
+  return slides;
+}
+
+function getWrappedYears(){
+  const yearsSet = new Set();
+  entries.forEach(e => { if(e.date) yearsSet.add(e.date.slice(0,4)); });
+  movieEntries.forEach(e => { if(e.date) yearsSet.add(e.date.slice(0,4)); });
+  return [...yearsSet].sort((a,b) => b.localeCompare(a));
+}
+
+function openWrappedYearPicker(){
+  const years = getWrappedYears();
+  const list = document.getElementById('wrappedYearList');
+  const countForYear = (y) => {
+    const yEntries = entries.filter(e => e.date && e.date.slice(0,4) === y);
+    const yMovies = movieEntries.filter(e => e.date && e.date.slice(0,4) === y);
+    return yEntries.length + yMovies.length;
+  };
+  const totalAll = entries.length + movieEntries.length;
+
+  let html = `<button type="button" class="wrapped-year-btn all-time" onclick="selectWrappedYear('all')">Todo el historial <span class="count">${totalAll} registros</span></button>`;
+  html += years.map(y => `<button type="button" class="wrapped-year-btn" onclick="selectWrappedYear('${y}')">${y} <span class="count">${countForYear(y)} registros</span></button>`).join('');
+  if(!years.length){
+    html += `<div class="activity-detail-empty" style="margin-top:6px;">Todavía no tienes registros con fecha para separar por año.</div>`;
+  }
+  list.innerHTML = html;
+  document.getElementById('wrappedYearOverlay').style.display = 'flex';
+}
+function closeWrappedYearPicker(){
+  document.getElementById('wrappedYearOverlay').style.display = 'none';
+}
+function selectWrappedYear(year){
+  closeWrappedYearPicker();
+  openWrapped(year);
+}
+window.selectWrappedYear = selectWrappedYear;
+
+function openWrapped(year){
+  const stats = computeWrappedStats(year);
+  if(stats.totalEpisodes + stats.totalMovies === 0){
+    wrappedSlides = [{
+      icon:'📭', eyebrow:'Todavía nada por aquí',
+      big:'Sin datos suficientes',
+      sub: year === 'all' ? 'Registra algunos capítulos o películas y volvé a intentarlo.' : `No hay registros con fecha en ${year}. Probá con otro año.`,
+      colorA:'#1b2129', colorB:'#0e1216'
+    }];
+  } else {
+    wrappedSlides = buildWrappedSlides(stats, year);
+  }
+  wrappedIndex = 0;
+  document.getElementById('wrappedOverlay').style.display = 'flex';
+  renderWrappedSlide();
+}
+
+function closeWrapped(){
+  document.getElementById('wrappedOverlay').style.display = 'none';
+  playFolderMusic(null, null);
+}
+
+/* ========================= WRAPPED: exportar slide como PNG ========================= */
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = String(text || '').split(' ');
+  let line = '';
+  const lines = [];
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if(ctx.measureText(test).width > maxWidth && line){
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  });
+  if(line) lines.push(line);
+  lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+  return lines.length * lineHeight;
+}
+
+function exportWrappedSlideAsPng(){
+  const s = wrappedSlides[wrappedIndex];
+  if(!s) return;
+  const W = 900, H = 1200;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, s.colorA || '#1a2420');
+  grad.addColorStop(1, s.colorB || '#0e1216');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+
+  const finish = () => {
+    ctx.fillStyle = 'rgba(232,230,222,0.55)';
+    ctx.font = '700 26px "JetBrains Mono", monospace';
+    ctx.fillText((s.eyebrow || '').toUpperCase(), W/2, 420);
+
+    ctx.fillStyle = '#e8e6de';
+    ctx.font = '700 58px "Oswald", sans-serif';
+    wrapCanvasText(ctx, s.big, W/2, 520, 760, 66);
+
+    ctx.fillStyle = 'rgba(232,230,222,0.75)';
+    ctx.font = '400 28px "JetBrains Mono", monospace';
+    wrapCanvasText(ctx, s.sub, W/2, 760, 700, 38);
+
+    ctx.fillStyle = 'rgba(232,230,222,0.4)';
+    ctx.font = '600 20px "JetBrains Mono", monospace';
+    ctx.fillText('MI BITÁCORA · WRAPPED', W/2, H - 50);
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wrapped-slide-${wrappedIndex + 1}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  const drawEmojiIcon = () => {
+    ctx.fillStyle = '#e8e6de';
+    ctx.font = '150px sans-serif';
+    ctx.fillText(s.icon || '🎬', W/2, 340);
+    finish();
+  };
+
+  if(s.coverImage){
+    const img = new Image();
+    img.onload = () => {
+      const size = 220, x = W/2 - size/2, y = 140;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(W/2, y + size/2, size/2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, x, y, size, size);
+      ctx.restore();
+      finish();
+    };
+    img.onerror = drawEmojiIcon;
+    img.src = s.coverImage;
+  } else if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(drawEmojiIcon);
+  } else {
+    drawEmojiIcon();
+  }
+}
+document.getElementById('wrappedDownload').addEventListener('click', exportWrappedSlideAsPng);
+
+
+function renderWrappedSlide(){
+  const s = wrappedSlides[wrappedIndex];
+  const card = document.getElementById('wrappedCard');
+  card.style.setProperty('--slide-color-a', s.colorA);
+  card.style.setProperty('--slide-color-b', s.colorB);
+
+  const iconEl = document.getElementById('wrappedIcon');
+  if(s.coverImage){
+    iconEl.innerHTML = `<img src="${s.coverImage}" class="wrapped-cover-img">`;
+  } else {
+    iconEl.textContent = s.icon;
+  }
+  document.getElementById('wrappedEyebrow').textContent = s.eyebrow;
+  document.getElementById('wrappedBig').textContent = s.big;
+  document.getElementById('wrappedSub').textContent = s.sub;
+
+  const track = resolveSlideMusic(s);
+  const noteEl = document.getElementById('wrappedMusicNote');
+  if(track){
+    playFolderMusic(track.audioKey, track.dataUrl);
+    noteEl.innerHTML = `<span class="dot"></span>sonando: ${escapeHtml(track.songName || 'pista de la carpeta')}`;
+    noteEl.style.display = 'flex';
+  } else {
+    playFolderMusic(null, null);
+    noteEl.style.display = 'none';
+  }
+
+  document.getElementById('wrappedDots').innerHTML = wrappedSlides.map((_, i) =>
+    `<span class="wrapped-dot ${i === wrappedIndex ? 'active' : (i < wrappedIndex ? 'done' : '')}"></span>`
+  ).join('');
+
+  document.getElementById('wrappedPrev').disabled = wrappedIndex === 0;
+  const isLast = wrappedIndex === wrappedSlides.length - 1;
+  document.getElementById('wrappedNext').textContent = isLast ? 'Cerrar ✕' : 'Siguiente →';
+}
+
+function nextWrappedSlide(){
+  if(wrappedIndex < wrappedSlides.length - 1){
+    wrappedIndex++;
+    renderWrappedSlide();
+  } else {
+    closeWrapped();
+  }
+}
+function prevWrappedSlide(){
+  if(wrappedIndex > 0){ wrappedIndex--; renderWrappedSlide(); }
+}
+
+document.getElementById('btnOpenWrapped').addEventListener('click', openWrappedYearPicker);
+document.getElementById('wrappedYearClose').addEventListener('click', closeWrappedYearPicker);
+document.getElementById('wrappedYearOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'wrappedYearOverlay') closeWrappedYearPicker();
+});
+document.getElementById('wrappedNext').addEventListener('click', nextWrappedSlide);
+document.getElementById('wrappedPrev').addEventListener('click', prevWrappedSlide);
+document.getElementById('wrappedClose').addEventListener('click', closeWrapped);
+document.getElementById('wrappedOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'wrappedOverlay') closeWrapped();
+});
+document.addEventListener('keydown', (e) => {
+  if(document.getElementById('wrappedOverlay').style.display === 'flex'){
+    if(e.key === 'Escape') closeWrapped();
+    if(e.key === 'ArrowRight') nextWrappedSlide();
+    if(e.key === 'ArrowLeft') prevWrappedSlide();
+  }
+  if(e.key === 'Escape' && document.getElementById('genreModalOverlay').style.display === 'flex'){
+    closeGenreModal();
+  }
+  if(e.key === 'Escape' && document.getElementById('randomModalOverlay').style.display === 'flex'){
+    closeRandomModal();
+  }
+  if(e.key === 'Escape' && document.getElementById('wrappedYearOverlay').style.display === 'flex'){
+    closeWrappedYearPicker();
+  }
+  if(e.key === 'Escape' && document.getElementById('durationModalOverlay').style.display === 'flex'){
+    closeDurationSettings();
+  }
+});
+
+/* ========================= SELECCIÓN ALEATORIA ========================= */
+let randomPick = null; // { name, isPending, pendingId }
+
+function computeSeriesPool(includePending){
+  const map = new Map(); // seriesKey -> {name, isPending, pendingId}
+  entries.forEach(e => {
+    const k = seriesKey(e.serie);
+    if(getStatus(e.serie) !== 'terminada' && !map.has(k)){
+      map.set(k, { name: e.serie.trim(), isPending: false });
+    }
+  });
+  if(includePending){
+    pending.forEach(p => {
+      const k = seriesKey(p.serie);
+      if(!map.has(k)) map.set(k, { name: p.serie.trim(), isPending: true, pendingId: p.id });
+    });
+  }
+  return [...map.values()];
+}
+
+function goToRegisterSerie(name){
+  switchSeriesSub('log');
+  document.getElementById('fSerie').value = name;
+  document.getElementById('fSerie').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function renderRandomEmpty(includePending){
+  randomPick = null;
+  document.getElementById('randomModalBody').innerHTML =
+    `<div class="random-pick-note" style="padding:20px 0;">No encontré series "no terminadas"${includePending ? ' (incluyendo pendientes)' : ''} para sugerirte. Marca alguna como "en curso" o agrega una nueva.</div>`;
+  document.getElementById('randomActionBtn').style.display = 'none';
+}
+
+function renderRandomPick(){
+  const body = document.getElementById('randomModalBody');
+  const actionBtn = document.getElementById('randomActionBtn');
+  const name = randomPick.name;
+  const cover = covers[seriesKey(name)] || null;
+  const st = randomPick.isPending ? null : getStatus(name);
+  const genreStr = getGenre(name);
+  const typeVal = getType(name);
+
+  body.innerHTML = `
+    <div class="random-pick-card">
+      <div class="random-pick-cover" style="${cover ? `background-image:url('${cover}')` : ''}">${cover ? '' : '🎬'}</div>
+      <div class="random-pick-name">${escapeHtml(name)}</div>
+      <div class="random-pick-meta">
+        ${randomPick.isPending
+          ? `<span class="tag-pill" style="border-color:var(--amber);color:var(--amber);">📌 Pendiente</span>`
+          : `<span class="status-toggle ${st}" style="cursor:default;">${STATUS_LABELS[st]}</span>`}
+        ${tagsHtml(genreStr, typeVal)}
+      </div>
+      ${randomPick.isPending
+        ? `<div class="random-pick-note">La agregué al formulario de registro. En cuanto anotes su primer capítulo, se quitará automáticamente de tus pendientes. Si no la empiezas, se queda tal cual en la lista.</div>`
+        : `<div class="random-pick-note">Está "${STATUS_LABELS[st].toLowerCase()}". ¿Le seguimos hoy?</div>`}
+    </div>`;
+
+  if(randomPick.isPending){
+    actionBtn.style.display = 'none';
+  } else {
+    actionBtn.style.display = 'block';
+    actionBtn.textContent = '▶ Ir a registrar capítulo';
+  }
+}
+
+function pickRandom(){
+  const includePending = document.getElementById('randomIncludePending').checked;
+  const pool = computeSeriesPool(includePending);
+  if(!pool.length){ renderRandomEmpty(includePending); return; }
+  randomPick = pool[Math.floor(Math.random() * pool.length)];
+  renderRandomPick();
+  if(randomPick.isPending){
+    // La serie sigue intacta en pendientes: solo navegamos y prellenamos el formulario
+    goToRegisterSerie(randomPick.name);
+  }
+}
+
+function openRandomModal(){
+  document.getElementById('randomModalOverlay').style.display = 'flex';
+  pickRandom();
+}
+function closeRandomModal(){
+  document.getElementById('randomModalOverlay').style.display = 'none';
+}
+window.openRandomModal = openRandomModal;
+
+document.getElementById('randomRetryBtn').addEventListener('click', pickRandom);
+document.getElementById('randomIncludePending').addEventListener('change', pickRandom);
+document.getElementById('randomActionBtn').addEventListener('click', () => {
+  if(randomPick && !randomPick.isPending){
+    goToRegisterSerie(randomPick.name);
+  }
+  closeRandomModal();
+});
+document.getElementById('randomModalClose').addEventListener('click', closeRandomModal);
+document.getElementById('randomModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'randomModalOverlay') closeRandomModal();
+});
+
+/* ========================= INIT ========================= */
+nowDefaults('f');
+nowDefaults('m');
+loadAll();
+</script>
+</body>
+</html>
+apis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@400;500;600;700&display=swap');
 
 :root{
   --bg: #0e1216;
