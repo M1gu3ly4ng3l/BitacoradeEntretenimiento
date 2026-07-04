@@ -170,6 +170,21 @@ body{
   line-height:1.2; word-break:break-word;
 }
 .wrapped-sub{ font-size:13px; color:var(--text-dim); max-width:280px; line-height:1.5; }
+.wrapped-list{
+  display:flex; flex-direction:column; gap:8px; width:100%; max-width:300px; margin:2px 0;
+}
+.wrapped-list-item{
+  display:flex; align-items:center; gap:10px;
+  background:rgba(255,255,255,0.05); border-radius:10px; padding:7px 10px;
+}
+.wrapped-list-rank{ font-family:'Oswald', sans-serif; font-weight:700; color:var(--text-dim); font-size:13px; width:16px; flex-shrink:0; }
+.wrapped-list-cover{
+  width:32px; height:32px; border-radius:6px; object-fit:cover; flex-shrink:0;
+  background:rgba(255,255,255,0.08);
+}
+.wrapped-list-info{ min-width:0; text-align:left; }
+.wrapped-list-name{ font-size:12.5px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wrapped-list-count{ font-size:10.5px; color:var(--text-dim); }
 .wrapped-music-note{
   font-size:11px; color:var(--rewatch); letter-spacing:0.5px; margin-top:6px;
   display:flex; align-items:center; gap:6px;
@@ -251,6 +266,19 @@ body{
 .tab-btn.rankings-tab.active{ border-color:var(--star); }
 .tab-btn.activity-tab.active{ border-color:#4aa8e8; }
 .tab-btn.achievements-tab.active{ border-color:#f0a840; }
+
+/* ---------- Racha (streak) ---------- */
+.streak-banner{
+  display:flex; align-items:center; gap:14px;
+  background:linear-gradient(135deg, #2e2416, var(--bg-panel));
+  border:1px solid var(--amber); border-radius:12px;
+  padding:16px 20px; margin-bottom:18px;
+}
+.streak-fire{ font-size:38px; filter:drop-shadow(0 0 6px rgba(240,168,64,0.6)); }
+.streak-days{ font-family:'Oswald', sans-serif; font-size:22px; font-weight:700; color:var(--text); }
+.streak-label{ font-size:11px; color:var(--text-dim); letter-spacing:0.5px; }
+.streak-banner.zero{ border-color:var(--line); }
+.streak-banner.zero .streak-fire{ filter:none; opacity:0.4; }
 
 /* ---------- Mapa de actividad (heatmap) ---------- */
 .activity-header{
@@ -562,6 +590,21 @@ body{
   padding:16px; border:1px dashed var(--line); border-radius:8px;
 }
 
+/* ---------- Papelera ---------- */
+.trash-item{
+  background:var(--bg-card);
+  border:1px solid var(--line);
+  border-left:3px solid var(--rec);
+  border-radius:6px;
+  padding:10px 12px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-bottom:8px;
+}
+.trash-info{ min-width:0; }
+.trash-name{ font-size:13px; font-weight:700; color:var(--text); }
+.trash-meta{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+.trash-actions{ display:flex; gap:6px; flex-shrink:0; }
+
 /* ---------- Toolbar ---------- */
 .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
 .toolbar input[type="text"]{
@@ -623,6 +666,7 @@ body{
 .status-toggle.curso{ color:var(--amber); border-color:var(--amber); }
 .status-toggle.terminada{ color:var(--tape); border-color:var(--tape); }
 .status-toggle.rewatch{ color:var(--rewatch); border-color:var(--rewatch); }
+.status-toggle.abandonada{ color:var(--text-dim); border-color:var(--text-dim); opacity:0.75; }
 .entries-collapse{ display:none; padding-left:4px; }
 .entries-collapse.open{ display:block; }
 
@@ -917,6 +961,7 @@ body{
     </div>
     <div class="backup-row">
       <button class="backup-btn" id="btnOpenDurationSettings">⏱️ Duración promedio por tipo</button>
+      <button class="backup-btn" id="btnOpenTrash">🗑️ Papelera <span id="trashCountBadge"></span></button>
     </div>
     <div class="drive-row">
       <div class="drive-status" id="driveStatus"><span class="dot"></span><span id="driveStatusText">Google Drive: no conectado</span></div>
@@ -1092,6 +1137,7 @@ body{
           <option value="curso">En curso</option>
           <option value="rewatch">Repitiendo</option>
           <option value="terminada">Terminadas</option>
+          <option value="abandonada">Abandonadas</option>
         </select>
         <select id="fGenreFilter">
           <option value="todos">Todos los géneros</option>
@@ -1265,6 +1311,13 @@ body{
 
   <!-- ================= TAB: ACTIVIDAD ================= -->
   <div id="tabActivity" style="display:none;">
+    <div class="streak-banner" id="streakBanner">
+      <span class="streak-fire">🔥</span>
+      <div class="streak-info">
+        <div class="streak-days" id="streakDays">0 días</div>
+        <div class="streak-label">de racha registrando</div>
+      </div>
+    </div>
     <div class="panel">
       <div class="activity-header">
         <div class="activity-year-nav">
@@ -1365,6 +1418,18 @@ body{
     </div>
   </div>
 
+  <div class="modal-overlay" id="trashModalOverlay" style="display:none;">
+    <div class="modal-card">
+      <button class="wrapped-close" id="trashModalClose" title="Cerrar">✕</button>
+      <div class="panel-label">🗑️ Papelera</div>
+      <div style="font-size:11.5px; color:var(--text-dim); margin:-4px 0 14px;">
+        Lo que borres queda acá 15 días antes de eliminarse para siempre. Podés restaurarlo o borrarlo definitivamente cuando quieras.
+      </div>
+      <div id="trashList"></div>
+      <button class="btn-record" id="trashEmptyAll" style="margin-top:14px; background:var(--rec);">🗑️ Vaciar papelera</button>
+    </div>
+  </div>
+
   <div class="wrapped-overlay" id="wrappedOverlay" style="display:none;">
     <div class="wrapped-card" id="wrappedCard">
       <button class="wrapped-download-btn" id="wrappedDownload" title="Descargar esta slide como imagen">⤓ PNG</button>
@@ -1374,6 +1439,7 @@ body{
         <div class="wrapped-icon" id="wrappedIcon">🎬</div>
         <div class="wrapped-eyebrow" id="wrappedEyebrow"></div>
         <div class="wrapped-big" id="wrappedBig"></div>
+        <div class="wrapped-list" id="wrappedList" style="display:none;"></div>
         <div class="wrapped-sub" id="wrappedSub"></div>
         <div class="wrapped-music-note" id="wrappedMusicNote" style="display:none;"></div>
       </div>
@@ -1449,7 +1515,9 @@ const DATA_KEY = 'bitacora-series-data';
 const OLD_KEY = 'bitacora-series-entries';
 
 let entries = [];        // episodios de series
-let status = {};         // { serieKeyLower: 'curso'|'terminada'|'rewatch' }
+let status = {};         // { serieKeyLower: 'curso'|'terminada'|'rewatch'|'abandonada' }
+let statusManualAt = {}; // { serieKeyLower: timestamp del último cambio manual de estado }
+let trash = [];          // [{ id, kind:'series'|'movie', data:{...}, deletedAt: timestamp }]
 let covers = {};         // { serieKeyLower: dataURL }
 let pending = [];        // [{id, serie, note}]
 let genres = {};         // { serieKeyLower: 'Acción'|... }
@@ -1713,6 +1781,8 @@ async function loadAll(){
       const parsed = JSON.parse(savedData);
       entries = parsed.entries || [];
       status = parsed.status || {};
+      statusManualAt = parsed.statusManualAt || {};
+      trash = parsed.trash || [];
       covers = parsed.covers || {};
       pending = parsed.pending || [];
       genres = parsed.genres || {};
@@ -1739,19 +1809,23 @@ async function loadAll(){
   // Migración: los géneros ahora son arrays (antes eran un solo string)
   Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
   Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
+  const abandonedChanged = autoUpdateAbandonedSeries();
+  const trashPurged = purgeOldTrash();
   populateGenreSelects();
   populateSettingsUI();
   render();
   renderMovies();
   renderPending();
   renderMoviePending();
+  renderTrash();
   updateGlobalStats();
+  if(abandonedChanged || trashPurged) await saveAll();
 }
 
 async function saveAll(){
   try{
     const dataToSave = JSON.stringify({
-      entries, status, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
+      entries, status, statusManualAt, trash, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
       movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieFolderMusic, movieDuration, settings
     });
     localStorage.setItem(DATA_KEY, dataToSave);
@@ -1766,7 +1840,7 @@ async function saveAll(){
 /* ========================= BACKUP: exportar / restaurar todo ========================= */
 function collectAllData(){
   return {
-    entries, status, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
+    entries, status, statusManualAt, trash, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
     movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
@@ -1779,6 +1853,8 @@ function applyAllData(parsed){
   }
   entries = parsed.entries || [];
   status = parsed.status || {};
+  statusManualAt = parsed.statusManualAt || {};
+  trash = parsed.trash || [];
   covers = parsed.covers || {};
   pending = parsed.pending || [];
   genres = parsed.genres || {};
@@ -1797,6 +1873,8 @@ function applyAllData(parsed){
 
   Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
   Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
+  autoUpdateAbandonedSeries();
+  purgeOldTrash();
 
   populateGenreSelects();
   populateSettingsUI();
@@ -1804,6 +1882,7 @@ function applyAllData(parsed){
   renderMovies();
   renderPending();
   renderMoviePending();
+  renderTrash();
   updateGlobalStats();
 }
 
@@ -2287,10 +2366,42 @@ document.getElementById('audioFileInput').addEventListener('change', async (e) =
 });
 
 /* ========================= SERIES: status / expand ========================= */
-const STATUS_LABELS = { curso: 'En curso', terminada: 'Terminada', rewatch: 'Repitiendo' };
-const STATUS_ORDER = ['curso', 'terminada', 'rewatch'];
+const STATUS_LABELS = { curso: 'En curso', terminada: 'Terminada', rewatch: 'Repitiendo', abandonada: 'Abandonada' };
+const STATUS_ORDER = ['curso', 'terminada', 'rewatch', 'abandonada'];
+const ABANDON_DAYS = 30;
 
 function getStatus(name){ return status[seriesKey(name)] || 'curso'; }
+
+function lastEpisodeDateOf(name){
+  const key = seriesKey(name);
+  const dated = entries.filter(e => seriesKey(e.serie) === key && e.date).map(e => e.date).sort();
+  return dated.length ? dated[dated.length - 1] : null;
+}
+
+// Si una serie "en curso" lleva más de ABANDON_DAYS sin recibir un registro nuevo, pasa a "abandonada"
+// sola. Si el usuario la vuelve a poner en curso manualmente, le damos otros ABANDON_DAYS de gracia
+// antes de volver a marcarla (usamos el más reciente entre la última fecha registrada y el último
+// cambio manual de estado como referencia de "última actividad").
+function autoUpdateAbandonedSeries(){
+  const names = new Set(entries.map(e => e.serie.trim()));
+  const todayMs = Date.now();
+  let changed = false;
+  names.forEach(name => {
+    const key = seriesKey(name);
+    if(getStatus(name) !== 'curso') return;
+    const lastDate = lastEpisodeDateOf(name);
+    const lastDateMs = lastDate ? new Date(lastDate).getTime() : 0;
+    const manualMs = statusManualAt[key] || 0;
+    const lastActivityMs = Math.max(lastDateMs, manualMs);
+    if(!lastActivityMs) return;
+    const daysSince = (todayMs - lastActivityMs) / 86400000;
+    if(daysSince > ABANDON_DAYS){
+      status[key] = 'abandonada';
+      changed = true;
+    }
+  });
+  return changed;
+}
 
 function getSeriesGoal(name){ return seriesGoals[seriesKey(name)] || 0; }
 async function setSeriesGoal(name){
@@ -2310,6 +2421,7 @@ async function toggleStatus(name){
   const key = seriesKey(name);
   const idx = STATUS_ORDER.indexOf(getStatus(name));
   status[key] = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+  statusManualAt[key] = Date.now();
   render();
   await saveAll();
 }
@@ -2329,18 +2441,34 @@ function toggleExpand(name){
 window.toggleExpand = toggleExpand;
 
 /* ========================= SERIES: CRUD ========================= */
+function purgeOldTrash(){
+  const cutoff = Date.now() - 15 * 86400000;
+  const before = trash.length;
+  trash = trash.filter(t => t.deletedAt >= cutoff);
+  return trash.length !== before;
+}
+
+async function undoDelete(kind, originalId){
+  const idx = trash.findIndex(t => t.kind === kind && t.data.id === originalId);
+  if(idx === -1) return;
+  const item = trash[idx];
+  trash.splice(idx, 1);
+  if(kind === 'series'){ entries.push(item.data); render(); }
+  else { movieEntries.push(item.data); renderMovies(); }
+  renderTrash();
+  await saveAll();
+}
+
 async function deleteEntry(id){
   const idx = entries.findIndex(e => e.id === id);
   if(idx === -1) return;
   const removed = entries[idx];
   entries.splice(idx, 1);
+  trash.push({ id: 'tr' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), kind:'series', data: removed, deletedAt: Date.now() });
   render();
+  renderTrash();
   await saveAll();
-  showUndoToast('Episodio eliminado.', async () => {
-    entries.splice(idx, 0, removed);
-    render();
-    await saveAll();
-  });
+  showUndoToast('Episodio movido a la papelera.', async () => { await undoDelete('series', removed.id); });
 }
 window.deleteEntry = deleteEntry;
 
@@ -2946,15 +3074,91 @@ async function deleteMovieEntry(id){
   if(idx === -1) return;
   const removed = movieEntries[idx];
   movieEntries.splice(idx, 1);
+  trash.push({ id: 'tr' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), kind:'movie', data: removed, deletedAt: Date.now() });
   renderMovies();
+  renderTrash();
   await saveAll();
-  showUndoToast('Visionado eliminado.', async () => {
-    movieEntries.splice(idx, 0, removed);
-    renderMovies();
-    await saveAll();
-  });
+  showUndoToast('Visionado movido a la papelera.', async () => { await undoDelete('movie', removed.id); });
 }
 window.deleteMovieEntry = deleteMovieEntry;
+
+/* ========================= PAPELERA ========================= */
+function daysLeftInTrash(item){
+  const expiresAt = item.deletedAt + 15 * 86400000;
+  return Math.max(0, Math.ceil((expiresAt - Date.now()) / 86400000));
+}
+
+function renderTrash(){
+  const badge = document.getElementById('trashCountBadge');
+  badge.textContent = trash.length ? `(${trash.length})` : '';
+
+  const list = document.getElementById('trashList');
+  if(!trash.length){
+    list.innerHTML = `<div class="pending-empty">La papelera está vacía.</div>`;
+    return;
+  }
+  const sorted = [...trash].sort((a,b) => b.deletedAt - a.deletedAt);
+  list.innerHTML = sorted.map(item => {
+    const isSeries = item.kind === 'series';
+    const d = item.data;
+    const name = isSeries ? d.serie : d.title;
+    const tag = isSeries ? [d.season != null && d.season !== '' ? `T${pad(d.season)}` : '', d.episode != null && d.episode !== '' ? `E${pad(d.episode)}` : ''].filter(Boolean).join(' ') : '';
+    const left = daysLeftInTrash(item);
+    return `
+      <div class="trash-item">
+        <div class="trash-info">
+          <div class="trash-name">${isSeries ? '📺' : '🎬'} ${escapeHtml(name)}${tag ? ' — ' + tag : ''}</div>
+          <div class="trash-meta">${fmtDate(d.date, d.time)} · se borra en ${left} ${left === 1 ? 'día' : 'días'}</div>
+        </div>
+        <div class="trash-actions">
+          <button class="btn-mini start" onclick="restoreTrashItem('${item.id}')" title="Restaurar">↩ Restaurar</button>
+          <button class="del-btn" onclick="deleteTrashItemForever('${item.id}')" title="Borrar definitivamente">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function restoreTrashItem(trashId){
+  const idx = trash.findIndex(t => t.id === trashId);
+  if(idx === -1) return;
+  const item = trash[idx];
+  trash.splice(idx, 1);
+  if(item.kind === 'series'){ entries.push(item.data); render(); }
+  else { movieEntries.push(item.data); renderMovies(); }
+  renderTrash();
+  await saveAll();
+}
+window.restoreTrashItem = restoreTrashItem;
+
+async function deleteTrashItemForever(trashId){
+  const ok = await customConfirm('Esto borra el registro para siempre, ya no se puede deshacer. ¿Continuar?', { icon:'🗑️', title:'Borrar definitivamente', okText:'Borrar', danger:true });
+  if(!ok) return;
+  trash = trash.filter(t => t.id !== trashId);
+  renderTrash();
+  await saveAll();
+}
+window.deleteTrashItemForever = deleteTrashItemForever;
+
+async function emptyTrash(){
+  if(!trash.length) return;
+  const ok = await customConfirm(`Esto borra los ${trash.length} elementos de la papelera para siempre. ¿Continuar?`, { icon:'🗑️', title:'Vaciar papelera', okText:'Vaciar', danger:true });
+  if(!ok) return;
+  trash = [];
+  renderTrash();
+  await saveAll();
+}
+
+document.getElementById('btnOpenTrash').addEventListener('click', () => {
+  renderTrash();
+  document.getElementById('trashModalOverlay').style.display = 'flex';
+});
+document.getElementById('trashModalClose').addEventListener('click', () => {
+  document.getElementById('trashModalOverlay').style.display = 'none';
+});
+document.getElementById('trashModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'trashModalOverlay') document.getElementById('trashModalOverlay').style.display = 'none';
+});
+document.getElementById('trashEmptyAll').addEventListener('click', emptyTrash);
 
 function startMovieEdit(id){
   const entry = movieEntries.find(en => en.id === id);
@@ -3362,7 +3566,30 @@ function levelForCount(n){
   return 4;
 }
 
+function currentStreak(){
+  const daySet = new Set();
+  entries.forEach(e => { if(e.date) daySet.add(e.date); });
+  movieEntries.forEach(e => { if(e.date) daySet.add(e.date); });
+  if(!daySet.size) return 0;
+  const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  let cursor = new Date();
+  if(!daySet.has(toISO(cursor))){
+    cursor.setDate(cursor.getDate() - 1);
+    if(!daySet.has(toISO(cursor))) return 0;
+  }
+  let streak = 0;
+  while(daySet.has(toISO(cursor))){
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 function renderActivity(){
+  const streak = currentStreak();
+  document.getElementById('streakDays').textContent = `${streak} ${streak === 1 ? 'día' : 'días'}`;
+  document.getElementById('streakBanner').classList.toggle('zero', streak === 0);
+
   const dateMap = activityDateMap();
   const [minYear, maxYear] = availableActivityYears();
   if(activityYear === null) activityYear = maxYear;
@@ -3777,19 +4004,43 @@ function computeWrappedStats(year){
   let topMonth = null, topMonthCount = 0;
   Object.entries(monthCounts).forEach(([k,v]) => { if(v > topMonthCount){ topMonth = k; topMonthCount = v; } });
 
-  // Serie más vista dentro del mes más activo, con su portada
-  let topMonthSerie = null, topMonthSerieCount = 0, topMonthSerieCover = null;
+  // Series del mes: hasta 5, con al menos el 50% de sus capítulos vistos ese mes
+  // (solo entran las series que tengan una meta de capítulos totales configurada)
+  function uniqueEpisodeKey(e){ return `${e.season ?? ''}|${e.episode ?? ''}`; }
+  let seriesOfMonth = [];
   if(topMonth){
-    const monthSerieCounts = {};
-    datedEntries.forEach(e => {
-      if(e.date.slice(0,7) === topMonth){
-        const k = e.serie.trim();
-        monthSerieCounts[k] = (monthSerieCounts[k] || 0) + 1;
-      }
+    const monthEntries = datedEntries.filter(e => e.date.slice(0,7) === topMonth);
+    const bySerie = {};
+    monthEntries.forEach(e => {
+      const k = e.serie.trim();
+      (bySerie[k] = bySerie[k] || new Set()).add(uniqueEpisodeKey(e));
     });
-    Object.entries(monthSerieCounts).forEach(([k,v]) => { if(v > topMonthSerieCount){ topMonthSerie = k; topMonthSerieCount = v; } });
-    if(topMonthSerie) topMonthSerieCover = covers[seriesKey(topMonthSerie)] || null;
+    seriesOfMonth = Object.entries(bySerie)
+      .map(([name, set]) => ({ name, count: set.size, goal: getSeriesGoal(name) }))
+      .filter(x => x.goal > 0 && x.count >= x.goal / 2)
+      .sort((a,b) => b.count - a.count)
+      .slice(0, 5)
+      .map(x => ({ name:x.name, count:x.count, goal:x.goal, cover: covers[seriesKey(x.name)] || null }));
   }
+
+  // Series del año: vistas al 100% dentro del año, con calificación promedio mayor a 3.9
+  const bySerieYear = {};
+  yearEntries.forEach(e => {
+    const k = e.serie.trim();
+    bySerieYear[k] = bySerieYear[k] || { epSet: new Set(), ratings: [] };
+    bySerieYear[k].epSet.add(uniqueEpisodeKey(e));
+    if(e.rating > 0) bySerieYear[k].ratings.push(e.rating);
+  });
+  const seriesOfYear = Object.entries(bySerieYear)
+    .map(([name, data]) => {
+      const goal = getSeriesGoal(name);
+      const avg = data.ratings.length ? data.ratings.reduce((a,b) => a+b, 0) / data.ratings.length : 0;
+      return { name, count: data.epSet.size, goal, avg };
+    })
+    .filter(x => x.goal > 0 && x.count >= x.goal && x.avg > 3.9)
+    .sort((a,b) => b.avg - a.avg)
+    .slice(0, 5)
+    .map(x => ({ name:x.name, count:x.count, goal:x.goal, avg:x.avg, cover: covers[seriesKey(x.name)] || null }));
 
   const ratedItems = [...yearEntries, ...yearMovieEntries].filter(e => e.rating > 0);
   const avgRating = ratedItems.length ? (ratedItems.reduce((s,e) => s + e.rating, 0) / ratedItems.length) : 0;
@@ -3822,7 +4073,7 @@ function computeWrappedStats(year){
     topGenre, topGenreCount,
     totalRewatch,
     topMonth, topMonthCount,
-    topMonthSerie, topMonthSerieCount, topMonthSerieCover,
+    seriesOfMonth, seriesOfYear,
     avgRating, ratedCount: ratedItems.length,
     totalPending,
     totalHours
@@ -3983,14 +4234,23 @@ function buildWrappedSlides(s, year){
     });
   }
 
-  if(s.topMonthSerie){
+  if(s.seriesOfMonth && s.seriesOfMonth.length){
     slides.push({
-      icon:'📅', eyebrow:`La serie del mes — ${formatMonthLabel(s.topMonth)}`,
-      big:s.topMonthSerie,
-      sub:`${s.topMonthSerieCount} ${s.topMonthSerieCount === 1 ? 'episodio ese mes' : 'episodios ese mes'}`,
-      coverImage: s.topMonthSerieCover,
-      music:{ type:'specific', mediaType:'series', name:s.topMonthSerie },
+      icon:'📅', eyebrow:`Series del mes — ${formatMonthLabel(s.topMonth)}`,
+      seriesList: s.seriesOfMonth.map(x => ({ name:x.name, cover:x.cover, detail:`${x.count}/${x.goal} capítulos` })),
+      sub:`registraste al menos la mitad de sus capítulos durante ${formatMonthLabel(s.topMonth)}`,
+      music:{ type:'specific', mediaType:'series', name:s.seriesOfMonth[0].name },
       colorA:'#16242e', colorB:'#0e1216'
+    });
+  }
+
+  if(s.seriesOfYear && s.seriesOfYear.length){
+    slides.push({
+      icon:'🏆', eyebrow:`Series del año — ${year === 'all' ? 'todo tu historial' : year}`,
+      seriesList: s.seriesOfYear.map(x => ({ name:x.name, cover:x.cover, detail:`100% vista · ★ ${x.avg.toFixed(1)}` })),
+      sub:'terminaste sus capítulos completos y las calificaste con más de 3.9 estrellas en promedio',
+      music:{ type:'specific', mediaType:'series', name:s.seriesOfYear[0].name },
+      colorA:'#1a2420', colorB:'#0e1216'
     });
   }
 
@@ -4117,13 +4377,26 @@ function exportWrappedSlideAsPng(){
     ctx.font = '700 26px "JetBrains Mono", monospace';
     ctx.fillText((s.eyebrow || '').toUpperCase(), W/2, 420);
 
-    ctx.fillStyle = '#e8e6de';
-    ctx.font = '700 58px "Oswald", sans-serif';
-    wrapCanvasText(ctx, s.big, W/2, 520, 760, 66);
+    if(s.seriesList && s.seriesList.length){
+      ctx.fillStyle = '#e8e6de';
+      ctx.font = '700 32px "Oswald", sans-serif';
+      s.seriesList.forEach((item, i) => {
+        ctx.fillText(`${i+1}. ${item.name}`, W/2, 500 + i * 60);
+        ctx.font = '400 22px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(232,230,222,0.6)';
+        ctx.fillText(item.detail, W/2, 500 + i * 60 + 28);
+        ctx.font = '700 32px "Oswald", sans-serif';
+        ctx.fillStyle = '#e8e6de';
+      });
+    } else {
+      ctx.fillStyle = '#e8e6de';
+      ctx.font = '700 58px "Oswald", sans-serif';
+      wrapCanvasText(ctx, s.big, W/2, 520, 760, 66);
+    }
 
     ctx.fillStyle = 'rgba(232,230,222,0.75)';
     ctx.font = '400 28px "JetBrains Mono", monospace';
-    wrapCanvasText(ctx, s.sub, W/2, 760, 700, 38);
+    wrapCanvasText(ctx, s.sub, W/2, 900, 700, 38);
 
     ctx.fillStyle = 'rgba(232,230,222,0.4)';
     ctx.font = '600 20px "JetBrains Mono", monospace';
@@ -4183,7 +4456,26 @@ function renderWrappedSlide(){
     iconEl.textContent = s.icon;
   }
   document.getElementById('wrappedEyebrow').textContent = s.eyebrow;
-  document.getElementById('wrappedBig').textContent = s.big;
+
+  const listEl = document.getElementById('wrappedList');
+  const bigEl = document.getElementById('wrappedBig');
+  if(s.seriesList && s.seriesList.length){
+    bigEl.style.display = 'none';
+    listEl.style.display = 'flex';
+    listEl.innerHTML = s.seriesList.map((item, i) => `
+      <div class="wrapped-list-item">
+        <span class="wrapped-list-rank">#${i+1}</span>
+        ${item.cover ? `<img src="${item.cover}" class="wrapped-list-cover">` : `<span class="wrapped-list-cover" style="display:flex;align-items:center;justify-content:center;">📺</span>`}
+        <div class="wrapped-list-info">
+          <div class="wrapped-list-name">${escapeHtml(item.name)}</div>
+          <div class="wrapped-list-count">${escapeHtml(item.detail)}</div>
+        </div>
+      </div>`).join('');
+  } else {
+    bigEl.style.display = 'block';
+    listEl.style.display = 'none';
+    bigEl.textContent = s.big;
+  }
   document.getElementById('wrappedSub').textContent = s.sub;
 
   const track = resolveSlideMusic(s);
