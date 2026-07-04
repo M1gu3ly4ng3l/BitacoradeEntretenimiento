@@ -1,17 +1,14 @@
-// Service Worker de la Bitácora
-// Estrategia: "network-first" para el HTML (para que siempre agarres la versión
-// más nueva que subas a GitHub cuando haya internet), con respaldo en caché para
-// cuando no haya conexión. Así nunca hay que tocar este archivo al actualizar la app.
-
 const CACHE_NAME = 'bitacora-shell-v1';
 const SHELL_FILES = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-192-maskable.png',
-  './icons/icon-512-maskable.png'
+  './icons/launchericon-48x48.png',
+  './icons/launchericon-72x72.png',
+  './icons/launchericon-96x96.png',
+  './icons/launchericon-144x144.png',
+  './icons/launchericon-192x192.png',
+  './icons/launchericon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
