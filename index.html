@@ -339,6 +339,12 @@ body{
 .random-modal-actions .btn-secondary{ flex:1; }
 .random-modal-actions .btn-record{ flex:1; margin-top:0; }
 
+/* ---------- Diálogo genérico (alert/confirm/prompt) ---------- */
+#dialogTitle{ margin-bottom:8px; }
+#dialogMessage{ margin-bottom:2px; }
+#dialogInputWrap{ margin-top:14px; }
+#dialogInputWrap input{ text-align:center; }
+
 /* ---------- Form panel ---------- */
 .panel{
   background:var(--bg-panel);
@@ -1415,6 +1421,21 @@ body{
     </div>
   </div>
 
+  <div class="modal-overlay" id="dialogOverlay" style="display:none;">
+    <div class="modal-card" id="dialogCard" style="max-width:360px; text-align:center;">
+      <div class="wrapped-icon" id="dialogIcon" style="font-size:32px; margin-bottom:6px;">⚠️</div>
+      <div class="panel-label" id="dialogTitle" style="justify-content:center;"></div>
+      <div id="dialogMessage" style="font-size:13px; color:var(--text-dim); line-height:1.55; white-space:pre-line;"></div>
+      <div class="field full-row" id="dialogInputWrap" style="display:none; text-align:left;">
+        <input type="text" id="dialogInput">
+      </div>
+      <div class="random-modal-actions" id="dialogActions" style="margin-top:18px;">
+        <button type="button" class="btn-secondary" id="dialogCancelBtn">Cancelar</button>
+        <button type="button" class="btn-record" id="dialogOkBtn">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="coverFileInput" accept="image/*" style="display:none">
   <input type="file" id="movieCoverFileInput" accept="image/*" style="display:none">
   <input type="file" id="audioFileInput" accept="audio/*" style="display:none">
@@ -1504,6 +1525,80 @@ function showUndoToast(message, undoFn, duration = 6000){
     await undoFn();
   });
 }
+/* ========================= DIÁLOGOS PERSONALIZADOS (reemplazo de alert/confirm/prompt) ========================= */
+function showDialog({ icon = '⚠️', title = '', message = '', mode = 'alert', okText, cancelText = 'Cancelar', defaultValue = '', danger = false } = {}){
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('dialogOverlay');
+    const inputWrap = document.getElementById('dialogInputWrap');
+    const input = document.getElementById('dialogInput');
+    const okBtn = document.getElementById('dialogOkBtn');
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogTitle').style.display = title ? 'flex' : 'none';
+    document.getElementById('dialogMessage').textContent = message;
+
+    okBtn.textContent = okText || (mode === 'confirm' ? 'Confirmar' : mode === 'prompt' ? 'Guardar' : 'Aceptar');
+    okBtn.className = danger ? 'btn-record' : 'btn-record';
+    cancelBtn.textContent = cancelText;
+    cancelBtn.style.display = (mode === 'alert') ? 'none' : 'block';
+
+    if(mode === 'prompt'){
+      inputWrap.style.display = 'block';
+      input.value = defaultValue || '';
+    } else {
+      inputWrap.style.display = 'none';
+    }
+
+    let done = false;
+    const cleanup = () => {
+      if(done) return;
+      done = true;
+      overlay.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+    };
+    const onOk = () => {
+      cleanup();
+      if(mode === 'prompt') resolve(input.value);
+      else if(mode === 'confirm') resolve(true);
+      else resolve(undefined);
+    };
+    const onCancel = () => {
+      cleanup();
+      if(mode === 'prompt') resolve(null);
+      else if(mode === 'confirm') resolve(false);
+      else resolve(undefined);
+    };
+    const onOverlayClick = (e) => { if(e.target.id === 'dialogOverlay') onCancel(); };
+    const onKeydown = (e) => {
+      if(e.key === 'Escape') onCancel();
+      if(e.key === 'Enter' && mode !== 'prompt') onOk();
+      if(e.key === 'Enter' && mode === 'prompt'){ e.preventDefault(); onOk(); }
+    };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+
+    overlay.style.display = 'flex';
+    if(mode === 'prompt') setTimeout(() => { input.focus(); input.select(); }, 30);
+  });
+}
+function customAlert(message, opts = {}){
+  return showDialog({ icon:'ℹ️', title:'Aviso', message, mode:'alert', ...opts });
+}
+function customConfirm(message, opts = {}){
+  return showDialog({ icon:'❓', title:'Confirmar', message, mode:'confirm', ...opts });
+}
+function customPrompt(message, defaultValue = '', opts = {}){
+  return showDialog({ icon:'✏️', title:'', message, mode:'prompt', defaultValue, ...opts });
+}
+
 function seriesKey(name){ return name.trim().toLowerCase(); }
 function escapeHtml(str){
   const d = document.createElement('div');
@@ -1662,7 +1757,7 @@ async function saveAll(){
     localStorage.setItem(DATA_KEY, dataToSave);
   } catch(e){
     console.error('No se pudo guardar la bitácora en localStorage. Puede que la música de carpeta ocupe demasiado espacio.', e);
-    alert('No se pudo guardar. Es posible que el almacenamiento local esté lleno (por ejemplo, por archivos de música muy pesados). Intenta usar un clip de audio más corto o liviano.');
+    await customAlert('No se pudo guardar. Es posible que el almacenamiento local esté lleno (por ejemplo, por archivos de música muy pesados). Intenta usar un clip de audio más corto o liviano.', { icon:'💾', title:'Espacio insuficiente' });
   }
   updateGlobalStats();
   scheduleDriveUpload();
@@ -1739,13 +1834,14 @@ document.getElementById('backupFileInput').addEventListener('change', async (e) 
   const file = e.target.files[0];
   e.target.value = '';
   if(!file) return;
-  if(!confirm('Restaurar un backup reemplaza TODOS tus datos actuales (series, películas, pendientes, portadas, música). ¿Seguro que quieres continuar?')) return;
+  const ok = await customConfirm('Restaurar un backup reemplaza TODOS tus datos actuales (series, películas, pendientes, portadas, música). ¿Seguro que quieres continuar?', { icon:'♻️', title:'Restaurar backup', okText:'Restaurar', danger:true });
+  if(!ok) return;
   try{
     await restoreBackup(file);
-    alert('¡Backup restaurado con éxito!');
+    await customAlert('¡Backup restaurado con éxito!', { icon:'✅', title:'Listo' });
   }catch(err){
     console.error('Error al restaurar backup:', err);
-    alert('No se pudo leer ese archivo. Asegúrate de que sea un backup exportado desde esta misma app (.json).');
+    await customAlert('No se pudo leer ese archivo. Asegúrate de que sea un backup exportado desde esta misma app (.json).', { icon:'⚠️', title:'Error' });
   }
 });
 
@@ -2177,7 +2273,7 @@ document.getElementById('audioFileInput').addEventListener('change', async (e) =
   e.target.value = '';
   if(!file || !pendingMusicSeries) return;
   if(file.size > MAX_AUDIO_BYTES){
-    alert('Ese archivo de audio es muy pesado (más de 6MB). Elige un clip más corto o liviano para que se pueda guardar.');
+    await customAlert('Ese archivo de audio es muy pesado (más de 6MB). Elige un clip más corto o liviano para que se pueda guardar.', { icon:'🎵', title:'Archivo muy pesado' });
     pendingMusicSeries = null;
     return;
   }
@@ -2200,7 +2296,7 @@ function getSeriesGoal(name){ return seriesGoals[seriesKey(name)] || 0; }
 async function setSeriesGoal(name){
   const key = seriesKey(name);
   const current = getSeriesGoal(name);
-  const input = prompt(`¿Cuántos capítulos en total tiene "${name}"?\n(Déjalo vacío o en 0 para quitar la barra de progreso)`, current || '');
+  const input = await customPrompt(`¿Cuántos capítulos en total tiene "${name}"?\n(Déjalo vacío o en 0 para quitar la barra de progreso)`, current || '', { icon:'🎯', title:'Meta de episodios', okText:'Guardar' });
   if(input === null) return; // cancelado
   const n = parseInt(input, 10);
   if(!n || n <= 0){ delete seriesGoals[key]; }
@@ -2301,8 +2397,12 @@ function renderContinueWatching(){
     if(e.season !== '' && e.season != null && e.season !== undefined) tParts.push(`T${pad(e.season)}`);
     if(e.episode !== '' && e.episode != null && e.episode !== undefined) tParts.push(`E${pad(e.episode)}`);
     const tag = tParts.join(' ');
+    const nextSeason = (e.season !== '' && e.season != null) ? e.season : '';
+    const nextEpisode = (e.episode !== '' && e.episode != null && !isNaN(parseInt(e.episode,10)))
+      ? parseInt(e.episode,10) + 1
+      : '';
     return `
-      <div class="cw-card" onclick="jumpToSerie(decodeURIComponent('${encodeURIComponent(name)}'))">
+      <div class="cw-card" onclick="jumpToSerie(decodeURIComponent('${encodeURIComponent(name)}'), '${encodeURIComponent(nextSeason)}', '${encodeURIComponent(nextEpisode)}')">
         <div class="cw-cover" style="${cover ? `background-image:url('${cover}')` : ''}">${cover ? '' : '📺'}</div>
         <div class="cw-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
         <div class="cw-last">Último: ${tag || '—'}${e.date ? ' · ' + fmtDate(e.date) : ''}</div>
@@ -2310,11 +2410,21 @@ function renderContinueWatching(){
   }).join('');
 }
 
-function jumpToSerie(name){
+function jumpToSerie(name, nextSeason = '', nextEpisode = ''){
   switchSeriesSub('log');
   document.getElementById('fSerie').value = name;
+  const seasonVal = decodeURIComponent(nextSeason || '');
+  const episodeVal = decodeURIComponent(nextEpisode || '');
+  document.getElementById('fTemp').value = seasonVal;
+  document.getElementById('fCap').value = episodeVal;
   document.getElementById('fSerie').scrollIntoView({behavior:'smooth', block:'center'});
-  document.getElementById('fSerie').focus();
+  if(episodeVal){
+    // Si ya sabemos el siguiente capítulo, mandamos el foco a la nota/calificación en vez de pisar el número
+    document.getElementById('fCap').focus();
+    document.getElementById('fCap').select();
+  } else {
+    document.getElementById('fSerie').focus();
+  }
 }
 window.jumpToSerie = jumpToSerie;
 
@@ -2804,7 +2914,7 @@ document.getElementById('movieAudioFileInput').addEventListener('change', async 
   e.target.value = '';
   if(!file || !pendingMusicMovie) return;
   if(file.size > MAX_AUDIO_BYTES){
-    alert('Ese archivo de audio es muy pesado (más de 6MB). Elige un clip más corto o liviano para que se pueda guardar.');
+    await customAlert('Ese archivo de audio es muy pesado (más de 6MB). Elige un clip más corto o liviano para que se pueda guardar.', { icon:'🎵', title:'Archivo muy pesado' });
     pendingMusicMovie = null;
     return;
   }
@@ -3719,6 +3829,75 @@ function computeWrappedStats(year){
   };
 }
 
+function buildComparisonSlides(year, currentStats){
+  const slides = [];
+  const y = parseInt(year, 10);
+  if(year === 'all' || isNaN(y)) return slides;
+  const prevYear = String(y - 1);
+  const prevStats = computeWrappedStats(prevYear);
+  const prevTotal = prevStats.totalEpisodes + prevStats.totalMovies;
+  if(prevTotal === 0) return slides; // no hay datos del año anterior para comparar
+
+  const currentTotal = currentStats.totalEpisodes + currentStats.totalMovies;
+  const diff = currentTotal - prevTotal;
+  const pct = Math.round((diff / prevTotal) * 100);
+
+  let icon, big, sub;
+  if(diff > 0){
+    icon = '📈'; big = `+${pct}%`;
+    sub = `${currentTotal} registros en ${year} vs. ${prevTotal} en ${prevYear} — ${diff} ${diff === 1 ? 'más' : 'más'}`;
+  } else if(diff < 0){
+    icon = '📉'; big = `${pct}%`;
+    sub = `${currentTotal} registros en ${year} vs. ${prevTotal} en ${prevYear} — ${Math.abs(diff)} menos`;
+  } else {
+    icon = '➡️'; big = 'Sin cambios';
+    sub = `${currentTotal} registros en ${year}, igual que en ${prevYear}`;
+  }
+  slides.push({
+    icon, eyebrow:`Comparado con ${prevYear}`,
+    big, sub,
+    music:{ type:'random' },
+    colorA:'#1a2030', colorB:'#0e1216'
+  });
+
+  if(currentStats.totalHours > 0 && prevStats.totalHours > 0){
+    const hDiff = currentStats.totalHours - prevStats.totalHours;
+    const hPct = Math.round((hDiff / prevStats.totalHours) * 100);
+    if(Math.abs(hPct) >= 1){
+      slides.push({
+        icon: hDiff >= 0 ? '⏫' : '⏬',
+        eyebrow:'Horas vistas vs. año anterior',
+        big:`${hDiff >= 0 ? '+' : ''}${hPct}%`,
+        sub:`${Math.round(currentStats.totalHours)}h en ${year} vs. ${Math.round(prevStats.totalHours)}h en ${prevYear}`,
+        music:{ type:'random' },
+        colorA:'#1a1f24', colorB:'#0e1216'
+      });
+    }
+  }
+
+  if(currentStats.topGenre && prevStats.topGenre){
+    if(currentStats.topGenre !== prevStats.topGenre){
+      slides.push({
+        icon:'🔀', eyebrow:'Tu género favorito cambió',
+        big:`${prevStats.topGenre} → ${currentStats.topGenre}`,
+        sub:`en ${prevYear} era "${prevStats.topGenre}" y en ${year} pasó a ser "${currentStats.topGenre}"`,
+        music:{ type:'genre', genre: currentStats.topGenre },
+        colorA:'#241a2e', colorB:'#0e1216'
+      });
+    } else {
+      slides.push({
+        icon:'🏷️', eyebrow:'Género fiel',
+        big:currentStats.topGenre,
+        sub:`sigue siendo tu favorito, igual que en ${prevYear}`,
+        music:{ type:'genre', genre: currentStats.topGenre },
+        colorA:'#241a2e', colorB:'#0e1216'
+      });
+    }
+  }
+
+  return slides;
+}
+
 function buildWrappedSlides(s, year){
   const slides = [];
   const yearLabel = year === 'all' ? 'todo tu historial' : `tu ${year}`;
@@ -3730,6 +3909,8 @@ function buildWrappedSlides(s, year){
     music:{ type:'random' },
     colorA:'#241a1f', colorB:'#0e1216'
   });
+
+  slides.push(...buildComparisonSlides(year, s));
 
   if(s.totalHours > 0){
     const days = s.totalHours / 24;
