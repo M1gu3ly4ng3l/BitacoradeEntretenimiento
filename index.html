@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bitácora de Series y Películas</title>
 
+<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0e1216">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2200,6 +2201,7 @@ async function restoreBackup(file){
   const text = await file.text();
   const parsed = JSON.parse(text);
   applyAllData(parsed);
+  localStorage.removeItem('driveBaseSnapshot'); // el backup restaurado es una versión nueva; no comparar contra la sincronización vieja
   await saveAll();
 }
 
@@ -2269,11 +2271,107 @@ let driveTokenExpiresAt = 0; // epoch ms
 let driveFileId = localStorage.getItem('driveFileId') || null;
 let driveSyncTimer = null;
 let driveApplyingRemote = false;
+let driveConflictPreferLocal = true; // desempate para ediciones al mismo registro desde ambos lados
 
 function driveSetStatus(mode, text){
   const el = document.getElementById('driveStatus');
   el.className = 'drive-status' + (mode ? ' ' + mode : '');
   document.getElementById('driveStatusText').textContent = text;
+}
+
+/* ========================= FUSIÓN DE 3 VÍAS (evita perder registros al sincronizar) =========================
+   En vez de "el que suba último gana", comparamos: la última versión sincronizada en común (base),
+   lo que hay en este dispositivo (local) y lo que hay en Drive (remoto). Así:
+   - Lo agregado en un solo lado (celular o PC) se conserva siempre, sin importar quién sincronizó primero.
+   - Lo borrado en un lado se respeta (no se "resucita") siempre que el otro lado no lo haya modificado después.
+   - Solo si el MISMO registro fue editado distinto en ambos lados se usa un desempate (gana el que cambió más recientemente). */
+function driveGetBaseSnapshot(){
+  try{
+    const raw = localStorage.getItem('driveBaseSnapshot');
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function driveSetBaseSnapshot(data){
+  try{ localStorage.setItem('driveBaseSnapshot', JSON.stringify(data)); }catch(e){ /* no-op */ }
+}
+
+function mergeArraysById(baseArr, localArr, remoteArr){
+  baseArr = baseArr || []; localArr = localArr || []; remoteArr = remoteArr || [];
+  const baseMap = new Map(baseArr.map(i => [i.id, i]));
+  const localMap = new Map(localArr.map(i => [i.id, i]));
+  const remoteMap = new Map(remoteArr.map(i => [i.id, i]));
+  const allIds = new Set([...localMap.keys(), ...remoteMap.keys()]);
+  const result = [];
+
+  allIds.forEach(id => {
+    const inBase = baseMap.has(id);
+    const inLocal = localMap.has(id);
+    const inRemote = remoteMap.has(id);
+
+    if(inLocal && inRemote){
+      const localItem = localMap.get(id);
+      const remoteItem = remoteMap.get(id);
+      result.push(JSON.stringify(localItem) === JSON.stringify(remoteItem)
+        ? localItem
+        : (driveConflictPreferLocal ? localItem : remoteItem));
+    } else if(inLocal && !inRemote){
+      if(inBase) return; // existía antes y ya no está en remoto: lo borraron allá, no lo resucitamos
+      result.push(localMap.get(id)); // es nuevo en este dispositivo
+    } else if(inRemote && !inLocal){
+      if(inBase) return; // lo borramos acá, no lo resucitamos
+      result.push(remoteMap.get(id)); // es nuevo en Drive (vino de otro dispositivo)
+    }
+  });
+
+  return result;
+}
+
+function mergeDicts(baseDict, localDict, remoteDict){
+  baseDict = baseDict || {}; localDict = localDict || {}; remoteDict = remoteDict || {};
+  const allKeys = new Set([...Object.keys(localDict), ...Object.keys(remoteDict)]);
+  const result = {};
+
+  allKeys.forEach(key => {
+    const inBase = Object.prototype.hasOwnProperty.call(baseDict, key);
+    const localVal = localDict[key], remoteVal = remoteDict[key], baseVal = baseDict[key];
+    const inLocal = Object.prototype.hasOwnProperty.call(localDict, key);
+    const inRemote = Object.prototype.hasOwnProperty.call(remoteDict, key);
+
+    if(inLocal && inRemote){
+      if(JSON.stringify(localVal) === JSON.stringify(remoteVal)){
+        result[key] = localVal;
+      } else if(inBase && JSON.stringify(baseVal) === JSON.stringify(localVal)){
+        result[key] = remoteVal; // solo cambió en remoto
+      } else if(inBase && JSON.stringify(baseVal) === JSON.stringify(remoteVal)){
+        result[key] = localVal; // solo cambió en local
+      } else {
+        result[key] = driveConflictPreferLocal ? localVal : remoteVal; // cambió distinto en ambos: desempate
+      }
+    } else if(inLocal && !inRemote){
+      if(inBase && JSON.stringify(baseVal) === JSON.stringify(localVal)) return; // remoto lo borró, local no lo tocó
+      result[key] = localVal;
+    } else if(inRemote && !inLocal){
+      if(inBase && JSON.stringify(baseVal) === JSON.stringify(remoteVal)) return; // local lo borró, remoto no lo tocó
+      result[key] = remoteVal;
+    }
+  });
+
+  return result;
+}
+
+const DRIVE_ID_ARRAY_FIELDS = ['entries', 'movieEntries', 'pending', 'moviePending', 'trash', 'customAchievements'];
+const DRIVE_DICT_FIELDS = [
+  'status', 'statusManualAt', 'covers', 'genres', 'types', 'sagas', 'folderMusic', 'seriesGoals', 'seriesDuration',
+  'movieCovers', 'movieGenres', 'movieTypes', 'movieSagas', 'franchises', 'movieFolderMusic', 'movieDuration', 'settings'
+];
+
+function mergeAllData(base, local, remote, preferLocalOnConflict){
+  driveConflictPreferLocal = preferLocalOnConflict;
+  base = base || {};
+  const merged = {};
+  DRIVE_ID_ARRAY_FIELDS.forEach(f => { merged[f] = mergeArraysById(base[f], local[f], remote[f]); });
+  DRIVE_DICT_FIELDS.forEach(f => { merged[f] = mergeDicts(base[f], local[f], remote[f]); });
+  return merged;
 }
 
 function driveSaveTokenCache(){
@@ -2427,6 +2525,39 @@ async function driveUploadFile(content){
   return data;
 }
 
+async function driveMergeWithRemote(){
+  if(!driveFileId) return;
+
+  const remoteData = await driveDownloadFile(driveFileId);
+  const base = driveGetBaseSnapshot();
+  const localData = collectAllData();
+
+  if(JSON.stringify(remoteData) === JSON.stringify(localData)){
+    driveSetBaseSnapshot(localData);
+    localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+    driveSetStatus('connected', 'Google Drive: ya estaba al día');
+    return;
+  }
+
+  const lastLocalChange = localStorage.getItem('lastLocalChangeIso');
+  const remoteMeta = await driveFindFile();
+  const remoteModified = remoteMeta ? remoteMeta.modifiedTime : null;
+  const preferLocal = !remoteModified || (lastLocalChange && new Date(lastLocalChange) > new Date(remoteModified));
+
+  const merged = mergeAllData(base, localData, remoteData, preferLocal);
+
+  driveApplyingRemote = true;
+  applyAllData(merged);
+  driveApplyingRemote = false;
+
+  const finalData = collectAllData();
+  localStorage.setItem(DATA_KEY, JSON.stringify(finalData));
+  await driveUploadFile(finalData);
+  driveSetBaseSnapshot(finalData);
+  localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+  driveSetStatus('connected', 'Google Drive: cambios combinados de ambos dispositivos ✓');
+}
+
 async function driveSyncOnConnect(){
   driveSetStatus('syncing', 'Google Drive: revisando...');
   try{
@@ -2437,36 +2568,16 @@ async function driveSyncOnConnect(){
     }
 
     if(!remoteMeta){
-      await driveUploadFile(collectAllData());
+      // No existe archivo en Drive todavía: lo creamos con lo que hay local
+      const localData = collectAllData();
+      await driveUploadFile(localData);
+      driveSetBaseSnapshot(localData);
       localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
       driveSetStatus('connected', 'Google Drive: conectado (archivo creado)');
       return;
     }
 
-    if(!remoteMeta.modifiedTime){
-      const found = await driveFindFile();
-      if(found) remoteMeta = found;
-    }
-
-    const lastSynced = localStorage.getItem('driveLastSyncedIso');
-    const lastLocalChange = localStorage.getItem('lastLocalChangeIso');
-    const remoteIsNewer = remoteMeta.modifiedTime && (!lastSynced || new Date(remoteMeta.modifiedTime) > new Date(lastSynced));
-
-    if(remoteIsNewer){
-      const remoteData = await driveDownloadFile(driveFileId);
-      driveApplyingRemote = true;
-      applyAllData(remoteData);
-      driveApplyingRemote = false;
-      localStorage.setItem(DATA_KEY, JSON.stringify(collectAllData()));
-      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
-      driveSetStatus('connected', 'Google Drive: datos actualizados desde otro dispositivo');
-    } else if(lastLocalChange && (!lastSynced || new Date(lastLocalChange) > new Date(lastSynced))){
-      await driveUploadFile(collectAllData());
-      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
-      driveSetStatus('connected', 'Google Drive: sincronizado');
-    } else {
-      driveSetStatus('connected', 'Google Drive: ya estaba al día');
-    }
+    await driveMergeWithRemote();
   } catch(err){
     console.error('Error sincronizando con Google Drive:', err);
     driveSetStatus('error', 'Google Drive: error al sincronizar');
@@ -2480,9 +2591,15 @@ function scheduleDriveUpload(){
   driveSetStatus('syncing', 'Google Drive: sincronizando...');
   driveSyncTimer = setTimeout(async () => {
     try{
-      await driveUploadFile(collectAllData());
-      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
-      driveSetStatus('connected', 'Google Drive: sincronizado');
+      if(driveFileId){
+        await driveMergeWithRemote();
+      } else {
+        const localData = collectAllData();
+        await driveUploadFile(localData);
+        driveSetBaseSnapshot(localData);
+        localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+        driveSetStatus('connected', 'Google Drive: sincronizado');
+      }
     }catch(err){
       console.error('Error subiendo a Google Drive:', err);
       driveSetStatus('error', 'Google Drive: error al sincronizar (reintentará en el próximo cambio)');
@@ -2497,9 +2614,15 @@ document.getElementById('btnSyncDriveNow').addEventListener('click', async () =>
   if(!driveAccessToken){ requestDriveToken(true); return; }
   driveSetStatus('syncing', 'Google Drive: sincronizando...');
   try{
-    await driveUploadFile(collectAllData());
-    localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
-    driveSetStatus('connected', 'Google Drive: sincronizado');
+    if(driveFileId){
+      await driveMergeWithRemote();
+    } else {
+      const localData = collectAllData();
+      await driveUploadFile(localData);
+      driveSetBaseSnapshot(localData);
+      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+      driveSetStatus('connected', 'Google Drive: sincronizado');
+    }
   }catch(err){
     console.error(err);
     driveSetStatus('error', 'Google Drive: error al sincronizar');
