@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bitácora de Series y Películas</title>
 
-<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0e1216">
 <meta name="mobile-web-app-capable" content="yes">
@@ -46,7 +45,6 @@ body{
   padding:28px 20px 60px;
 }
 
-/* ---------- Header : deck faceplate ---------- */
 .deck{
   background:linear-gradient(180deg,#181e25,#12161b);
   border:1px solid var(--line);
@@ -248,6 +246,7 @@ body{
 .genre-check-pill.checked{ border-color:var(--rewatch); color:var(--text); background:rgba(167,139,250,0.08); }
 
 /* ---------- Tabs ---------- */
+.tab-bar-spacer{ display:none; }
 .tab-bar{
   display:flex; gap:8px;
   margin-bottom:16px;
@@ -277,6 +276,38 @@ body{
 .tab-btn.rankings-tab.active{ border-color:var(--star); }
 .tab-btn.activity-tab.active{ border-color:#4aa8e8; }
 .tab-btn.achievements-tab.active{ border-color:#f0a840; }
+.tab-icon{ margin-right:6px; }
+
+/* En pantallas de celular, la tab-bar se vuelve una barra de navegación
+   inferior fija, al estilo de una app nativa. */
+@media (max-width:780px){
+  .tab-bar-spacer{ display:block; height:calc(64px + env(safe-area-inset-bottom)); }
+  .tab-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:500;
+    margin:0 auto; max-width:780px;
+    background:linear-gradient(180deg, rgba(14,18,22,0.88), rgba(14,18,22,0.99));
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    gap:4px;
+  }
+  .tab-btn{
+    padding:8px 2px;
+    font-size:9.5px;
+    letter-spacing:0.4px;
+    border-radius:8px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .tab-icon{ margin-right:0; font-size:18px; line-height:1; }
+  .tab-label{ line-height:1; }
+  .toast-container{ bottom:calc(72px + env(safe-area-inset-bottom)); }
+  .toolbar{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:stretch;
+  }
+  .toolbar input[type="text"]{ grid-column:1 / -1; }
+  .toolbar-btn{ grid-column:1 / -1; }
+  .toolbar select{ width:100%; }
+}
 
 /* ---------- Racha (streak) ---------- */
 .streak-banner{
@@ -737,9 +768,9 @@ body{
 }
 .progress-goal-btn:hover{ color:var(--tape); }
 .goal-btn{
-  flex-shrink:0; width:26px; height:26px; border-radius:6px;
+  flex-shrink:0; width:34px; height:34px; border-radius:8px;
   display:flex; align-items:center; justify-content:center;
-  background:none; border:1px dashed var(--line); cursor:pointer; font-size:12px; opacity:0.55;
+  background:none; border:1px dashed var(--line); cursor:pointer; font-size:14px; opacity:0.55;
 }
 .goal-btn:hover{ opacity:1; border-color:var(--tape); }
 .goal-btn.has{ border-style:solid; border-color:var(--tape); opacity:1; }
@@ -756,9 +787,9 @@ body{
 
 /* ---------- Folder music control ---------- */
 .music-btn{
-  flex-shrink:0; width:26px; height:26px; border-radius:6px;
+  flex-shrink:0; width:34px; height:34px; border-radius:8px;
   display:flex; align-items:center; justify-content:center;
-  background:none; border:1px dashed var(--line); cursor:pointer; font-size:12px; opacity:0.55;
+  background:none; border:1px dashed var(--line); cursor:pointer; font-size:14px; opacity:0.55;
 }
 .music-btn:hover{ opacity:1; border-color:var(--tape); }
 .music-btn.has{ border-style:solid; border-color:var(--tape); opacity:1; }
@@ -803,10 +834,10 @@ body{
 }
 .entry-time{ font-size:11px; color:var(--text-dim); }
 .entry-note{ font-size:12px; color:var(--text-dim); font-style:italic; margin-top:2px; overflow-wrap:anywhere; }
-.entry-actions{ display:flex; gap:6px; flex-shrink:0; }
+.entry-actions{ display:flex; gap:8px; flex-shrink:0; }
 .del-btn{
   background:none; border:1px solid var(--line); color:var(--text-dim);
-  width:28px; height:28px; border-radius:6px; cursor:pointer; flex-shrink:0; font-size:14px; line-height:1;
+  width:34px; height:34px; border-radius:8px; cursor:pointer; flex-shrink:0; font-size:15px; line-height:1;
 }
 .del-btn:hover{ border-color:var(--rec); color:var(--rec); }
 
@@ -870,7 +901,7 @@ body{
 /* ---------- Toast (deshacer) ---------- */
 .toast-container{
   position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-  z-index:200; display:flex; flex-direction:column; gap:8px; align-items:center;
+  z-index:600; display:flex; flex-direction:column; gap:8px; align-items:center;
   width:100%; max-width:420px; padding:0 16px;
 }
 .toast{
@@ -1040,12 +1071,13 @@ body{
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtnSeries" onclick="switchMainTab('series')">📺 Series</button>
-    <button class="tab-btn movies-tab" id="tabBtnMovies" onclick="switchMainTab('peliculas')">🎬 Películas</button>
-    <button class="tab-btn rankings-tab" id="tabBtnRankings" onclick="switchMainTab('rankings')">🏆 Rankings</button>
-    <button class="tab-btn activity-tab" id="tabBtnActivity" onclick="switchMainTab('activity')">📅 Actividad</button>
-    <button class="tab-btn achievements-tab" id="tabBtnAchievements" onclick="switchMainTab('achievements')">🏅 Logros</button>
+    <button class="tab-btn active" id="tabBtnSeries" onclick="switchMainTab('series')"><span class="tab-icon">📺</span><span class="tab-label">Series</span></button>
+    <button class="tab-btn movies-tab" id="tabBtnMovies" onclick="switchMainTab('peliculas')"><span class="tab-icon">🎬</span><span class="tab-label">Películas</span></button>
+    <button class="tab-btn rankings-tab" id="tabBtnRankings" onclick="switchMainTab('rankings')"><span class="tab-icon">🏆</span><span class="tab-label">Rankings</span></button>
+    <button class="tab-btn activity-tab" id="tabBtnActivity" onclick="switchMainTab('activity')"><span class="tab-icon">📅</span><span class="tab-label">Actividad</span></button>
+    <button class="tab-btn achievements-tab" id="tabBtnAchievements" onclick="switchMainTab('achievements')"><span class="tab-icon">🏅</span><span class="tab-label">Logros</span></button>
   </div>
+  <div class="tab-bar-spacer"></div>
 
   <!-- ================= TAB: SERIES ================= -->
   <div id="tabSeries">
