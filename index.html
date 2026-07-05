@@ -340,12 +340,23 @@ body{
 .activity-total{ font-size:11.5px; color:var(--text-dim); }
 .activity-total b{ color:var(--text); }
 
-.activity-scroll{ overflow-x:auto; padding-bottom:6px; }
-.activity-months{ display:flex; gap:3px; margin-bottom:4px; margin-left:22px; }
+.activity-scroll{
+  overflow-x:auto; padding-bottom:10px;
+  scrollbar-width:thin; scrollbar-color:var(--tape) var(--bg-card);
+}
+.activity-scroll::-webkit-scrollbar, .modal-card::-webkit-scrollbar, .cw-list::-webkit-scrollbar{ height:7px; width:7px; }
+.activity-scroll::-webkit-scrollbar-track, .modal-card::-webkit-scrollbar-track, .cw-list::-webkit-scrollbar-track{ background:var(--bg-card); border-radius:20px; }
+.activity-scroll::-webkit-scrollbar-thumb, .modal-card::-webkit-scrollbar-thumb, .cw-list::-webkit-scrollbar-thumb{ background:var(--tape); border-radius:20px; }
+.activity-scroll::-webkit-scrollbar-thumb:hover, .modal-card::-webkit-scrollbar-thumb:hover, .cw-list::-webkit-scrollbar-thumb:hover{ background:#7ee8a8; }
+.modal-card, .cw-list{ scrollbar-width:thin; scrollbar-color:var(--tape) var(--bg-card); }
 .activity-month-label{
   font-size:9.5px; color:var(--text-dim); letter-spacing:0.5px; text-transform:uppercase;
+  height:13px; line-height:13px; margin-bottom:4px; white-space:nowrap; text-align:center;
 }
-.activity-body{ display:flex; gap:3px; }
+.activity-month-label-spacer{ height:13px; margin-bottom:4px; }
+.activity-body{ display:flex; }
+.activity-month-block{ display:flex; flex-direction:column; }
+.activity-month-days{ display:flex; gap:3px; }
 .activity-row{ display:flex; }
 .activity-daylabels{
   display:flex; flex-direction:column; gap:3px; margin-right:4px;
@@ -1477,9 +1488,9 @@ body{
         <div class="activity-total" id="activityTotal"></div>
       </div>
       <div class="activity-scroll">
-        <div class="activity-months" id="activityMonths"></div>
         <div class="activity-row">
           <div class="activity-daylabels">
+            <span class="activity-month-label-spacer"></span>
             <span></span><span>Lun</span><span></span><span>Mié</span><span></span><span>Vie</span><span></span>
           </div>
           <div class="activity-body" id="activityGrid"></div>
@@ -4073,43 +4084,48 @@ function renderActivity(){
   document.getElementById('activityPrevYear').disabled = activityYear <= minYear;
   document.getElementById('activityNextYear').disabled = activityYear >= maxYear;
 
-  const yearStart = new Date(activityYear, 0, 1);
-  const yearEnd = new Date(activityYear, 11, 31);
-  // Empezamos la grilla en el domingo anterior (o igual) al 1 de enero, como GitHub
-  const gridStart = new Date(yearStart);
-  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+  // Cada mes es su propio bloque independiente (no una tira continua de semanas
+  // de domingo a sábado): arranca de nuevo en el día 1, con celdas vacías de relleno
+  // antes de ese día para respetar la fila del día de la semana correspondiente,
+  // y tiene exactamente la cantidad de días que le corresponde a ese mes.
+  const CELL = 11, GAP = 3, MONTH_GAP = 12; // px
 
-  const weeks = [];
-  let cursor = new Date(gridStart);
+  const months = [];
   let totalCount = 0;
-  while(cursor <= yearEnd){
-    const week = [];
-    for(let d = 0; d < 7; d++){
-      const inYear = cursor.getFullYear() === activityYear;
-      const dateStr = `${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
-      const count = inYear ? (dateMap[dateStr] || []).length : 0;
-      if(inYear) totalCount += count;
-      week.push({ dateStr, count, inYear, monthStart: inYear && cursor.getDate() === 1 ? cursor.getMonth() : null });
-      cursor.setDate(cursor.getDate() + 1);
+  for(let m = 0; m < 12; m++){
+    const daysInMonth = new Date(activityYear, m + 1, 0).getDate();
+    const startWeekday = new Date(activityYear, m, 1).getDay(); // 0=Dom .. 6=Sáb
+    const cells = [];
+    for(let i = 0; i < startWeekday; i++) cells.push(null);
+    for(let d = 1; d <= daysInMonth; d++){
+      const dateStr = `${activityYear}-${pad(m+1)}-${pad(d)}`;
+      const count = (dateMap[dateStr] || []).length;
+      totalCount += count;
+      cells.push({ dateStr, count });
     }
-    weeks.push(week);
+    while(cells.length % 7 !== 0) cells.push(null);
+    const columns = [];
+    for(let c = 0; c < cells.length / 7; c++) columns.push(cells.slice(c*7, c*7+7));
+    months.push({ month: m, columns });
   }
 
-  // Etiquetas de mes: una por cada semana donde empieza un mes nuevo
-  const monthsHtml = weeks.map(week => {
-    const found = week.find(d => d.monthStart !== null);
-    return `<span class="activity-month-label" style="width:11px;">${found ? MONTH_NAMES[found.monthStart].slice(0,3) : ''}</span>`;
-  }).join('');
-  document.getElementById('activityMonths').innerHTML = monthsHtml;
-
-  document.getElementById('activityGrid').innerHTML = weeks.map(week => `
-    <div class="activity-week">
-      ${week.map(d => {
-        if(!d.inYear) return `<span class="activity-day empty"></span>`;
-        const lvl = levelForCount(d.count);
-        const selected = d.dateStr === activitySelectedDate ? 'selected' : '';
-        return `<span class="activity-day ${lvl > 0 ? 'level-'+lvl : ''} ${selected}" data-date="${d.dateStr}" title="${fmtDate(d.dateStr)}: ${d.count} ${d.count === 1 ? 'registro' : 'registros'}" onclick="showActivityDetail('${d.dateStr}')"></span>`;
-      }).join('')}
+  // La etiqueta de cada mes vive DENTRO del mismo bloque que sus columnas de días
+  // (una encima de la otra, en una columna flex), así quedan siempre del mismo ancho
+  // sin tener que calcular píxeles a mano — eso es lo que se desalineaba antes.
+  document.getElementById('activityGrid').innerHTML = months.map((mo, i) => `
+    <div class="activity-month-block" style="${i > 0 ? `margin-left:${MONTH_GAP}px;` : ''}">
+      <div class="activity-month-label">${MONTH_NAMES[mo.month].slice(0,3)}</div>
+      <div class="activity-month-days">
+        ${mo.columns.map(col => `
+          <div class="activity-week">
+            ${col.map(cell => {
+              if(!cell) return `<span class="activity-day empty"></span>`;
+              const lvl = levelForCount(cell.count);
+              const selected = cell.dateStr === activitySelectedDate ? 'selected' : '';
+              return `<span class="activity-day ${lvl > 0 ? 'level-'+lvl : ''} ${selected}" data-date="${cell.dateStr}" title="${fmtDate(cell.dateStr)}: ${cell.count} ${cell.count === 1 ? 'registro' : 'registros'}" onclick="showActivityDetail('${cell.dateStr}')"></span>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
     </div>`).join('');
 
   document.getElementById('activityTotal').innerHTML = `<b>${totalCount}</b> ${totalCount === 1 ? 'registro' : 'registros'} en ${activityYear}`;
