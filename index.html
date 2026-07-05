@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bitácora de Series y Películas</title>
 
+<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0e1216">
 <meta name="mobile-web-app-capable" content="yes">
@@ -991,6 +992,26 @@ body{
 .achv-badge-dot{ width:7px; height:7px; border-radius:50%; background:var(--line); }
 .achv-badge-dot.on{ background:var(--star); }
 
+/* ---------- Logros personalizados (Diamante) ---------- */
+.achv-section-label{
+  font-family:'Oswald', sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--text-dim); margin:22px 0 12px 2px;
+}
+.custom-achv-form{ margin-top:14px; border-top:1px dashed var(--line); padding-top:14px; }
+.custom-achv-icon-row{ display:flex; gap:8px; align-items:center; }
+.custom-achv-icon-row input[type="text"]{ flex:1; }
+.achv-card.diamond{ border-color:#7dd3fc; background:linear-gradient(160deg, rgba(125,211,252,0.08), var(--bg-card)); }
+.achv-card.diamond.locked{ opacity:0.6; }
+.achv-card.diamond .achv-icon{ background:rgba(125,211,252,0.15); overflow:hidden; }
+.achv-card.diamond .achv-icon img{ width:100%; height:100%; object-fit:cover; }
+.achv-tier-label.diamond-label{ color:#7dd3fc; }
+.achv-progress-fill.diamond-fill{ background:#7dd3fc; }
+.achv-delete{
+  position:absolute; top:10px; right:10px; background:none; border:none; color:var(--text-dim);
+  cursor:pointer; font-size:12px; opacity:0.6;
+}
+.achv-delete:hover{ color:var(--rec); opacity:1; }
+
 /* ---------- Ajustes de tiempo (duración promedio) ---------- */
 .settings-row{ display:flex; gap:8px; margin-top:10px; }
 .settings-row .field{ flex:1; }
@@ -1482,6 +1503,36 @@ body{
       <div class="achievements-summary" id="achievementsSummary"></div>
     </div>
     <div class="achv-grid" id="achievementsGrid"></div>
+
+    <div class="achv-section-label">💎 Logros personalizados</div>
+    <div class="achv-grid" id="customAchievementsGrid"></div>
+
+    <div class="panel custom-achv-form">
+      <div class="panel-label">Crear un logro propio (siempre nivel Diamante)</div>
+      <div class="grid2">
+        <div class="field">
+          <label for="caName">Nombre del logro</label>
+          <input id="caName" type="text" placeholder='Ej: "Ahora eres un simbolista"'>
+        </div>
+        <div class="field">
+          <label for="caSerie">Serie que debe completarse al 100%</label>
+          <input id="caSerie" type="text" placeholder="Ej: Shingeki no Kyojin" list="serieList">
+        </div>
+      </div>
+      <div class="field full-row">
+        <label for="caDesc">Descripción (opcional)</label>
+        <input id="caDesc" type="text" placeholder="Ej: Completaste el 100% de Shingeki no Kyojin">
+      </div>
+      <div class="field full-row">
+        <label>Ícono del logro</label>
+        <div class="custom-achv-icon-row">
+          <input id="caIcon" type="text" maxlength="4" placeholder="💎" value="💎">
+          <button type="button" class="cover-mini-btn" id="btnCaImage" title="Subir una imagen para el ícono">🖼️</button>
+        </div>
+      </div>
+      <button class="btn-record" id="btnCreateAchievement" style="margin-top:14px;">💎 Crear logro</button>
+      <div class="error-msg" id="caErrMsg">Escribe un nombre y la serie que debe completarse.</div>
+    </div>
   </div>
 
   <div class="modal-overlay" id="wrappedYearOverlay" style="display:none;">
@@ -1673,6 +1724,7 @@ body{
   <input type="file" id="audioFileInput" accept="audio/*" style="display:none">
   <input type="file" id="movieAudioFileInput" accept="audio/*" style="display:none">
   <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none">
+  <input type="file" id="caImageFileInput" accept="image/*" style="display:none">
 
 </div>
 
@@ -1684,6 +1736,7 @@ let entries = [];        // episodios de series
 let status = {};         // { serieKeyLower: 'curso'|'terminada'|'rewatch'|'abandonada' }
 let statusManualAt = {}; // { serieKeyLower: timestamp del último cambio manual de estado }
 let trash = [];          // [{ id, kind:'series'|'movie', data:{...}, deletedAt: timestamp }]
+let customAchievements = []; // [{ id, name, desc, icon, image, condition:{type:'seriesComplete', seriesName} }]
 let covers = {};         // { serieKeyLower: dataURL }
 let pending = [];        // [{id, serie, note}]
 let genres = {};         // { serieKeyLower: 'Acción'|... }
@@ -1908,7 +1961,7 @@ function switchMainTab(tab){
   document.getElementById('tabBtnAchievements').classList.toggle('active', tab === 'achievements');
   if(tab === 'rankings') renderRankings();
   if(tab === 'activity') renderActivity();
-  if(tab === 'achievements') renderAchievements();
+  if(tab === 'achievements'){ renderAchievements(); renderCustomAchievements(); seedSymbolistFormIfEmpty(); }
 }
 
 function switchSeriesSub(sub){
@@ -1951,6 +2004,7 @@ async function loadAll(){
       status = parsed.status || {};
       statusManualAt = parsed.statusManualAt || {};
       trash = parsed.trash || [];
+      customAchievements = parsed.customAchievements || [];
       covers = parsed.covers || {};
       pending = parsed.pending || [];
       genres = parsed.genres || {};
@@ -1989,6 +2043,7 @@ async function loadAll(){
   renderPending();
   renderMoviePending();
   renderTrash();
+  renderCustomAchievements();
   updateGlobalStats();
   if(abandonedChanged || trashPurged) await saveAll();
   checkBackupReminder();
@@ -1997,7 +2052,7 @@ async function loadAll(){
 async function saveAll(){
   try{
     const dataToSave = JSON.stringify({
-      entries, status, statusManualAt, trash, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+      entries, status, statusManualAt, trash, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
       movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, movieFolderMusic, movieDuration, settings
     });
     localStorage.setItem(DATA_KEY, dataToSave);
@@ -2012,7 +2067,7 @@ async function saveAll(){
 /* ========================= BACKUP: exportar / restaurar todo ========================= */
 function collectAllData(){
   return {
-    entries, status, statusManualAt, trash, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+    entries, status, statusManualAt, trash, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
     movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
@@ -2027,6 +2082,7 @@ function applyAllData(parsed){
   status = parsed.status || {};
   statusManualAt = parsed.statusManualAt || {};
   trash = parsed.trash || [];
+  customAchievements = parsed.customAchievements || [];
   covers = parsed.covers || {};
   pending = parsed.pending || [];
   genres = parsed.genres || {};
@@ -2058,6 +2114,7 @@ function applyAllData(parsed){
   renderPending();
   renderMoviePending();
   renderTrash();
+  renderCustomAchievements();
   updateGlobalStats();
 }
 
@@ -4118,6 +4175,121 @@ function renderAchievements(){
           ? `<div class="achv-progress-track"><div class="achv-progress-fill" style="width:${pct}%"></div></div>
              <div class="achv-progress-label">${s.value}/${s.nextTarget}</div>`
           : `<div class="achv-progress-label">🏆 Nivel máximo alcanzado (${s.value})</div>`}
+      </div>`;
+  }).join('');
+}
+
+/* ========================= LOGROS PERSONALIZADOS (Diamante) ========================= */
+let pendingCaImage = null;
+
+// Precarga del formulario con el logro "Ahora eres un simbolista" (Shingeki al 100%)
+// que Miguel pidió crear, usando la imagen que subió. Solo hace falta confirmar el
+// nombre exacto de la serie (por si en su registro está escrita distinto) y tocar "Crear logro".
+const TATAKAE_ICON_DATAURL = "data:image/jpeg;base64,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";
+function seedSymbolistFormIfEmpty(){
+  if(customAchievements.some(ca => ca.name === 'Ahora eres un simbolista')) return;
+  const nameEl = document.getElementById('caName');
+  const serieEl = document.getElementById('caSerie');
+  const descEl = document.getElementById('caDesc');
+  const btnImg = document.getElementById('btnCaImage');
+  if(!nameEl.value) nameEl.value = 'Ahora eres un simbolista';
+  if(!serieEl.value) serieEl.value = 'Shingeki no Kyojin';
+  if(!descEl.value) descEl.value = 'Completaste el 100% de Shingeki no Kyojin';
+  pendingCaImage = TATAKAE_ICON_DATAURL;
+  btnImg.textContent = '✅';
+}
+
+document.getElementById('btnCaImage').addEventListener('click', () => {
+  document.getElementById('caImageFileInput').click();
+});
+document.getElementById('caImageFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    pendingCaImage = await resizeImageToDataUrl(file, 160, 0.82);
+    document.getElementById('btnCaImage').textContent = '✅';
+  }catch(err){ console.error('No se pudo procesar la imagen del logro', err); }
+});
+
+function computeCustomAchievementState(ca){
+  if(ca.condition.type === 'seriesComplete'){
+    const name = ca.condition.seriesName;
+    const goal = getSeriesGoal(name);
+    if(!goal) return { unlocked:false, noGoal:true, progress:0, goal:0 };
+    const epSet = new Set();
+    entries.forEach(e => {
+      if(seriesKey(e.serie) === seriesKey(name)) epSet.add(`${e.season ?? ''}|${e.episode ?? ''}`);
+    });
+    return { unlocked: epSet.size >= goal, noGoal:false, progress: epSet.size, goal };
+  }
+  return { unlocked:false, noGoal:true, progress:0, goal:0 };
+}
+
+async function createCustomAchievement(){
+  const name = document.getElementById('caName').value.trim();
+  const serieName = document.getElementById('caSerie').value.trim();
+  const errEl = document.getElementById('caErrMsg');
+  if(!name || !serieName){ errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  customAchievements.push({
+    id: 'ca' + Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    name,
+    desc: document.getElementById('caDesc').value.trim() || `Completar el 100% de "${serieName}"`,
+    icon: document.getElementById('caIcon').value.trim() || '💎',
+    image: pendingCaImage,
+    condition: { type:'seriesComplete', seriesName: serieName }
+  });
+
+  document.getElementById('caName').value = '';
+  document.getElementById('caSerie').value = '';
+  document.getElementById('caDesc').value = '';
+  document.getElementById('caIcon').value = '💎';
+  document.getElementById('btnCaImage').textContent = '🖼️';
+  pendingCaImage = null;
+
+  renderCustomAchievements();
+  await saveAll();
+}
+document.getElementById('btnCreateAchievement').addEventListener('click', createCustomAchievement);
+
+async function deleteCustomAchievement(id){
+  const ok = await customConfirm('¿Eliminar este logro personalizado? Esto no se puede deshacer.', { icon:'💎', title:'Eliminar logro', okText:'Eliminar', danger:true });
+  if(!ok) return;
+  customAchievements = customAchievements.filter(ca => ca.id !== id);
+  renderCustomAchievements();
+  await saveAll();
+}
+window.deleteCustomAchievement = deleteCustomAchievement;
+
+function renderCustomAchievements(){
+  const grid = document.getElementById('customAchievementsGrid');
+  if(!grid) return;
+  if(!customAchievements.length){
+    grid.innerHTML = `<div class="pending-empty" style="grid-column:1/-1;">Todavía no creaste ningún logro propio. Armá uno abajo — por ejemplo, uno que se desbloquee al completar tu serie favorita al 100%.</div>`;
+    return;
+  }
+  grid.innerHTML = customAchievements.map(ca => {
+    const s = computeCustomAchievementState(ca);
+    const pct = s.goal ? Math.min(100, Math.round((s.progress / s.goal) * 100)) : 0;
+    return `
+      <div class="achv-card diamond ${s.unlocked ? 'unlocked' : 'locked'}">
+        <button class="achv-delete" onclick="deleteCustomAchievement('${ca.id}')" title="Eliminar logro">✕</button>
+        <div class="achv-top">
+          <div class="achv-icon">${ca.image ? `<img src="${ca.image}">` : escapeHtml(ca.icon || '💎')}</div>
+          <div>
+            <div class="achv-name">${escapeHtml(ca.name)}</div>
+            <div class="achv-tier-label diamond-label">💎 Diamante</div>
+          </div>
+        </div>
+        <div class="achv-desc">${escapeHtml(ca.desc)}</div>
+        ${s.unlocked
+          ? `<div class="achv-progress-label">🏆 ¡Logro desbloqueado!</div>`
+          : s.noGoal
+            ? `<div class="achv-progress-label">⚠️ Asignale una meta de episodios a "${escapeHtml(ca.condition.seriesName)}" (botón 🎯 en su carpeta) para poder desbloquear este logro.</div>`
+            : `<div class="achv-progress-track"><div class="achv-progress-fill diamond-fill" style="width:${pct}%"></div></div>
+               <div class="achv-progress-label">${s.progress}/${s.goal} capítulos</div>`}
       </div>`;
   }).join('');
 }
