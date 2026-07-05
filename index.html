@@ -837,6 +837,12 @@ body{
 .bulk-action-bar-btns{ display:flex; gap:8px; flex-wrap:wrap; }
 .entry-left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
 .entry-tag-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.entry-movie-title-row{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.entry-movie-title{
+  font-family:'Oswald', sans-serif; font-weight:600; font-size:13px; color:var(--text);
+}
+.entry-movie-edit{ font-size:11px; color:var(--text-dim); cursor:pointer; opacity:0.7; }
+.entry-movie-edit:hover{ opacity:1; color:var(--tape); }
 .entry-tag{ font-size:13px; font-weight:700; color:var(--amber); letter-spacing:1px; }
 .entry-stars{ color:var(--star); font-size:12px; letter-spacing:1px; }
 .entry-rewatch{
@@ -1345,6 +1351,13 @@ body{
             <input id="mDuracion" type="number" min="1" placeholder="Ej: 110">
           </div>
         </div>
+        <div class="field full-row">
+          <label for="mFranquicia">Franquicia (opcional)</label>
+          <select id="mFranquicia">
+            <option value="">Ninguna</option>
+            <option value="__new__">✚ Crear nueva franquicia...</option>
+          </select>
+        </div>
         <div class="grid2">
           <div class="field">
             <label for="mFecha">Fecha</label>
@@ -1633,12 +1646,29 @@ body{
         <label for="genreModalDuration" id="genreModalDurationLabel">Duración por episodio (min)</label>
         <input type="number" id="genreModalDuration" min="1" placeholder="Dejar vacío = usar el promedio general">
       </div>
-      <div class="field full-row">
+      <div class="field full-row" id="genreModalSagaRow">
         <label for="genreModalSaga">Saga / Franquicia (opcional)</label>
         <input type="text" id="genreModalSaga" list="sagaList" placeholder="Ej: Marvel, Star Wars, Harry Potter...">
         <datalist id="sagaList"></datalist>
       </div>
       <button class="btn-record" id="genreModalSave" style="margin-top:18px;">✔ Guardar</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="franchiseModalOverlay" style="display:none;">
+    <div class="modal-card" style="max-width:380px;">
+      <button class="wrapped-close" id="franchiseModalClose" title="Cerrar">✕</button>
+      <div class="panel-label">🎞️ Nueva franquicia</div>
+      <div class="field full-row">
+        <label for="franchiseModalName">Nombre</label>
+        <input type="text" id="franchiseModalName" placeholder="Ej: UCM, Star Wars, Harry Potter...">
+      </div>
+      <div class="field full-row">
+        <label for="franchiseModalGoal">¿Cuántas películas tiene en total?</label>
+        <input type="number" id="franchiseModalGoal" min="1" placeholder="Ej: 33">
+      </div>
+      <button class="btn-record movie" id="franchiseModalSave" style="margin-top:18px;">✔ Crear franquicia</button>
+      <div class="error-msg" id="franchiseModalErr" style="display:none;">Escribí un nombre y la cantidad total de películas.</div>
     </div>
   </div>
 
@@ -1751,7 +1781,8 @@ let movieCovers = {};    // { titleKeyLower: dataURL }
 let moviePending = [];   // [{id, title, note}]
 let movieGenres = {};    // { titleKeyLower: 'Acción'|... }
 let movieTypes = {};     // { titleKeyLower: 'live'|'animada' }
-let movieSagas = {};      // { titleKeyLower: 'Marvel'|'Star Wars'|... } — franquicia opcional
+let movieSagas = {};      // { titleKeyLower: franchiseKey } — a qué franquicia pertenece esta película
+let franchises = {};       // { franchiseKey: { name:'UCM', goal: 33 } } — registro de franquicias con meta editable
 let movieFolderMusic = {}; // { titleKeyLower: {name, dataUrl} }
 let movieDuration = {};  // { titleKeyLower: minutos (number) } — pisa el promedio general por tipo
 const DEFAULT_SETTINGS = {
@@ -1995,6 +2026,22 @@ window.switchMovieSub = switchMovieSub;
 window.switchRankingSub = switchRankingSub;
 
 /* ========================= STORAGE ========================= */
+/* Migración: las "sagas" de películas (texto libre) pasan a ser franquicias con meta editable.
+   Cualquier valor viejo en movieSagas que no apunte a una franquicia ya registrada
+   se convierte en una franquicia nueva (meta inicial = cantidad de títulos que ya la tenían). */
+function migrateMovieFranchises(){
+  Object.keys(movieSagas).forEach(titleKey => {
+    const val = movieSagas[titleKey];
+    if(!val) { delete movieSagas[titleKey]; return; }
+    const fKey = seriesKey(val);
+    if(!franchises[fKey]){
+      const count = Object.values(movieSagas).filter(v => seriesKey(v) === fKey).length;
+      franchises[fKey] = { name: val, goal: count };
+    }
+    movieSagas[titleKey] = fKey;
+  });
+}
+
 async function loadAll(){
   try{
     const savedData = localStorage.getItem(DATA_KEY);
@@ -2019,6 +2066,7 @@ async function loadAll(){
       movieGenres = parsed.movieGenres || {};
       movieTypes = parsed.movieTypes || {};
       movieSagas = parsed.movieSagas || {};
+      franchises = parsed.franchises || {};
       movieFolderMusic = parsed.movieFolderMusic || {};
       movieDuration = parsed.movieDuration || {};
       settings = normalizeSettings(parsed.settings);
@@ -2033,10 +2081,12 @@ async function loadAll(){
   // Migración: los géneros ahora son arrays (antes eran un solo string)
   Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
   Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
+  migrateMovieFranchises();
   const abandonedChanged = autoUpdateAbandonedSeries();
   const trashPurged = purgeOldTrash();
   populateGenreSelects();
   populateSagaList();
+  populateFranchiseSelects();
   populateSettingsUI();
   render();
   renderMovies();
@@ -2053,7 +2103,7 @@ async function saveAll(){
   try{
     const dataToSave = JSON.stringify({
       entries, status, statusManualAt, trash, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
-      movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, movieFolderMusic, movieDuration, settings
+      movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings
     });
     localStorage.setItem(DATA_KEY, dataToSave);
   } catch(e){
@@ -2068,7 +2118,7 @@ async function saveAll(){
 function collectAllData(){
   return {
     entries, status, statusManualAt, trash, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
-    movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, movieFolderMusic, movieDuration, settings,
+    movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
   };
@@ -2097,17 +2147,20 @@ function applyAllData(parsed){
   movieGenres = parsed.movieGenres || {};
   movieTypes = parsed.movieTypes || {};
   movieSagas = parsed.movieSagas || {};
+  franchises = parsed.franchises || {};
   movieFolderMusic = parsed.movieFolderMusic || {};
   movieDuration = parsed.movieDuration || {};
   settings = normalizeSettings(parsed.settings);
 
   Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
   Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
+  migrateMovieFranchises();
   autoUpdateAbandonedSeries();
   purgeOldTrash();
 
   populateGenreSelects();
   populateSagaList();
+  populateFranchiseSelects();
   populateSettingsUI();
   render();
   renderMovies();
@@ -2202,6 +2255,7 @@ const DRIVE_FILE_NAME = 'bitacora-datos.json';
 
 let driveTokenClient = null;
 let driveAccessToken = null;
+let driveTokenExpiresAt = 0; // epoch ms
 let driveFileId = localStorage.getItem('driveFileId') || null;
 let driveSyncTimer = null;
 let driveApplyingRemote = false;
@@ -2210,6 +2264,19 @@ function driveSetStatus(mode, text){
   const el = document.getElementById('driveStatus');
   el.className = 'drive-status' + (mode ? ' ' + mode : '');
   document.getElementById('driveStatusText').textContent = text;
+}
+
+function driveSaveTokenCache(){
+  try{
+    localStorage.setItem('driveTokenCache', JSON.stringify({ token: driveAccessToken, expiresAt: driveTokenExpiresAt }));
+  }catch(e){ /* no-op */ }
+}
+function driveLoadTokenCache(){
+  try{
+    const raw = localStorage.getItem('driveTokenCache');
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
 }
 
 function initGoogleDrive(){
@@ -2223,7 +2290,20 @@ function initGoogleDrive(){
       scope: DRIVE_SCOPE,
       callback: onDriveTokenResponse
     });
-    // Intento de conexión silenciosa: si ya autorizaste antes, no debería pedir nada
+
+    // Si ya teníamos un token guardado y todavía no vence, lo reusamos sin pedir nada
+    const cached = driveLoadTokenCache();
+    const bufferMs = 2 * 60 * 1000; // 2 min de margen
+    if(cached && cached.token && cached.expiresAt - bufferMs > Date.now()){
+      driveAccessToken = cached.token;
+      driveTokenExpiresAt = cached.expiresAt;
+      document.getElementById('btnConnectDrive').style.display = 'none';
+      document.getElementById('btnSyncDriveNow').style.display = 'inline-block';
+      driveSyncOnConnect();
+      return;
+    }
+
+    // Si no, intentamos una conexión silenciosa (puede fallar sin avisar en varios navegadores/móviles)
     requestDriveToken(false);
   }catch(err){
     console.warn('No se pudo inicializar Google Identity Services:', err);
@@ -2235,11 +2315,30 @@ function requestDriveToken(interactive){
   driveTokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
 }
 
+function requestDriveTokenSilentPromise(){
+  return new Promise((resolve) => {
+    if(!driveTokenClient){ resolve(null); return; }
+    const prevCallback = driveTokenClient.callback;
+    driveTokenClient.callback = (resp) => {
+      driveTokenClient.callback = prevCallback;
+      resolve(resp && !resp.error ? resp : null);
+    };
+    try{
+      driveTokenClient.requestAccessToken({ prompt: '' });
+    }catch(e){
+      driveTokenClient.callback = prevCallback;
+      resolve(null);
+    }
+  });
+}
+
 async function onDriveTokenResponse(resp){
   if(!resp || resp.error){
     return; // El intento silencioso falló; el usuario puede conectar manualmente con el botón
   }
   driveAccessToken = resp.access_token;
+  driveTokenExpiresAt = Date.now() + ((resp.expires_in || 3500) * 1000);
+  driveSaveTokenCache();
   document.getElementById('btnConnectDrive').style.display = 'none';
   document.getElementById('btnSyncDriveNow').style.display = 'inline-block';
   await driveSyncOnConnect();
@@ -2247,12 +2346,26 @@ async function onDriveTokenResponse(resp){
 
 async function driveApiFetch(url, options = {}){
   if(!driveAccessToken) throw new Error('Sin token de Google Drive');
-  const res = await fetch(url, {
+  const doFetch = () => fetch(url, {
     ...options,
     headers: Object.assign({}, options.headers || {}, { 'Authorization': `Bearer ${driveAccessToken}` })
   });
+
+  let res = await doFetch();
+  if(res.status === 401){
+    // El token venció antes de lo esperado: probamos UNA reconexión silenciosa antes de rendirnos
+    const retryResp = await requestDriveTokenSilentPromise();
+    if(retryResp){
+      driveAccessToken = retryResp.access_token;
+      driveTokenExpiresAt = Date.now() + ((retryResp.expires_in || 3500) * 1000);
+      driveSaveTokenCache();
+      res = await doFetch();
+    }
+  }
   if(res.status === 401){
     driveAccessToken = null;
+    driveTokenExpiresAt = 0;
+    localStorage.removeItem('driveTokenCache');
     driveSetStatus('error', 'Google Drive: sesión expirada, reconecta');
     document.getElementById('btnConnectDrive').style.display = 'inline-block';
     document.getElementById('btnSyncDriveNow').style.display = 'none';
@@ -2478,7 +2591,6 @@ function populateGenreSelects(){
 function populateSagaList(){
   const set = new Set();
   Object.values(sagas).forEach(s => { if(s) set.add(s); });
-  Object.values(movieSagas).forEach(s => { if(s) set.add(s); });
   const list = document.getElementById('sagaList');
   if(list) list.innerHTML = [...set].sort((a,b) => a.localeCompare(b)).map(s => `<option value="${escapeHtml(s)}"></option>`).join('');
 }
@@ -3541,24 +3653,39 @@ function renderMovies(){
     return;
   }
 
+  // Si una película pertenece a una franquicia, entra en la carpeta única de esa franquicia
+  // en vez de tener su propia carpeta por título.
   const groups = {}; const order = [];
   filtered.forEach(e => {
-    const key = e.title.trim();
-    if(!groups[key]){ groups[key] = []; order.push(key); }
-    groups[key].push(e);
+    const titleKey = seriesKey(e.title);
+    const fKey = movieSagas[titleKey] || null;
+    const groupKey = fKey || ('title:' + titleKey);
+    if(!groups[groupKey]){
+      groups[groupKey] = {
+        isFranchise: !!fKey,
+        franchiseKey: fKey,
+        displayName: fKey ? getFranchiseName(fKey) : e.title.trim(),
+        items: []
+      };
+      order.push(groupKey);
+    }
+    groups[groupKey].items.push(e);
   });
 
   const sortMode = document.getElementById('mSortFilter').value;
   if(sortMode === 'nombre'){
-    order.sort((a,b) => a.localeCompare(b, 'es', {sensitivity:'base'}));
+    order.sort((a,b) => groups[a].displayName.localeCompare(groups[b].displayName, 'es', {sensitivity:'base'}));
   } else if(sortMode === 'calificacion'){
-    order.sort((a,b) => avgRatingOf(groups[b]) - avgRatingOf(groups[a]));
+    order.sort((a,b) => avgRatingOf(groups[b].items) - avgRatingOf(groups[a].items));
   }
 
-  container.innerHTML = order.map(title => {
-    const items = groups[title].sort((a,b) => sortKeyOf(a).localeCompare(sortKeyOf(b)));
-    const isOpen = expandedMovies.has(seriesKey(title));
-    const cover = movieCovers[seriesKey(title)] || null;
+  container.innerHTML = order.map(groupKey => {
+    const group = groups[groupKey];
+    const { isFranchise, franchiseKey, displayName } = group;
+    const items = group.items.sort((a,b) => sortKeyOf(a).localeCompare(sortKeyOf(b)));
+    const dispKey = seriesKey(displayName);
+    const isOpen = expandedMovies.has(dispKey);
+    const cover = movieCovers[dispKey] || null;
 
     const cards = items.map((e, idx) => {
       if(e.id === editingMovieId){
@@ -3567,6 +3694,7 @@ function renderMovies(){
         ).join('');
         return `
           <div class="entry-card editing" data-movie-id="${e.id}">
+            ${isFranchise ? `<div class="entry-movie-title">🎬 ${escapeHtml(e.title)}</div>` : ''}
             <div class="edit-grid movie-grid">
               <div class="edit-field"><label>Fecha</label><input type="text" class="edit-date" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)" value="${e.date ? isoToDisplay(e.date) : ''}" ${!e.date ? 'disabled' : ''}></div>
               <div class="edit-field"><label>Hora</label><input type="time" class="edit-time" value="${e.time || ''}" ${!e.date ? 'disabled' : ''}></div>
@@ -3586,10 +3714,15 @@ function renderMovies(){
           </div>`;
       }
       const stars = starString(e.rating);
-      const tag = items.length > 1 ? `Visionado ${idx + 1}` : 'Visionado';
+      const tag = isFranchise ? 'Visionado' : (items.length > 1 ? `Visionado ${idx + 1}` : 'Visionado');
       return `
         <div class="entry-card movie-entry" data-movie-id="${e.id}">
           <div class="entry-left">
+            ${isFranchise ? `
+              <div class="entry-movie-title-row">
+                <span class="entry-movie-title">🎬 ${escapeHtml(e.title)}</span>
+                <span class="entry-movie-edit" onclick="openGenreModal('movie', decodeURIComponent('${encodeURIComponent(e.title)}'))" title="Editar género y tipo de esta película">🏷️✎</span>
+              </div>` : ''}
             <div class="entry-tag-row">
               <span class="entry-tag">${tag}</span>
               ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
@@ -3605,35 +3738,49 @@ function renderMovies(){
         </div>`;
     }).join('');
 
-    const groupGenre = getMovieGenre(title);
-    const groupType = getMovieType(title);
-    const groupSaga = movieSagas[seriesKey(title)] || '';
-    const music = movieFolderMusic[seriesKey(title)] || null;
-    const isPlaying = currentAudioKey === 'movie:' + seriesKey(title);
+    const music = movieFolderMusic[dispKey] || null;
+    const isPlaying = currentAudioKey === 'movie:' + dispKey;
+
+    // Cabecera de género/tipo solo tiene sentido para una única película, no para una franquicia con varios títulos
+    const groupGenre = isFranchise ? '' : getMovieGenre(displayName);
+    const groupType = isFranchise ? '' : getMovieType(displayName);
+
+    let progressBarHtml = '';
+    if(isFranchise){
+      const goal = (franchises[franchiseKey] && franchises[franchiseKey].goal) || 0;
+      const distinctTitles = new Set(items.map(e => seriesKey(e.title))).size;
+      const pct = goal > 0 ? Math.min(100, Math.round((distinctTitles / goal) * 100)) : 0;
+      progressBarHtml = goal > 0 ? `
+        <div class="progress-row">
+          <div class="progress-track ${pct >= 100 ? 'complete' : ''}"><div class="progress-mask" style="width:${100 - pct}%"></div></div>
+          <span class="progress-label">${distinctTitles}/${goal} · ${pct}%</span>
+          <button type="button" class="progress-goal-btn" onclick="setFranchiseGoal('${franchiseKey}')" title="Editar meta de la franquicia">editar meta</button>
+        </div>` : '';
+    }
 
     return `
       <div class="series-group">
-        <div class="series-header" onclick="toggleMovieExpand(decodeURIComponent('${encodeURIComponent(title)}'))">
+        <div class="series-header" onclick="toggleMovieExpand(decodeURIComponent('${encodeURIComponent(displayName)}'))">
           <div class="series-name">
             <span class="series-chevron ${isOpen ? 'open' : ''}">▸</span>
             <span class="series-cover ${cover ? '' : 'empty'}"
                   style="${cover ? `background-image:url('${cover}')` : ''}"
-                  onclick="event.stopPropagation(); openMovieCoverPicker(decodeURIComponent('${encodeURIComponent(title)}'))"
-                  title="${cover ? 'Cambiar portada' : 'Agregar portada'}">${cover ? '' : '🖼️'}</span>
-            <span class="series-title-wrap">${escapeHtml(title)} <span class="badge">${items.length} ${items.length === 1 ? 'visionado' : 'visionados'}</span>
-            ${cover ? `<span class="remove-cover" onclick="event.stopPropagation(); removeMovieCover(decodeURIComponent('${encodeURIComponent(title)}'))" title="Quitar portada">✕</span>` : ''}</span>
+                  onclick="event.stopPropagation(); openMovieCoverPicker(decodeURIComponent('${encodeURIComponent(displayName)}'))"
+                  title="${cover ? 'Cambiar portada' : 'Agregar portada'}">${cover ? '' : (isFranchise ? '🎞️' : '🖼️')}</span>
+            <span class="series-title-wrap">${escapeHtml(displayName)} <span class="badge">${isFranchise ? `${new Set(items.map(e => seriesKey(e.title))).size} películas` : `${items.length} ${items.length === 1 ? 'visionado' : 'visionados'}`}</span>
+            ${cover ? `<span class="remove-cover" onclick="event.stopPropagation(); removeMovieCover(decodeURIComponent('${encodeURIComponent(displayName)}'))" title="Quitar portada">✕</span>` : ''}</span>
           </div>
           <div class="header-tags">
             ${tagsHtml(groupGenre, groupType)}
-            ${groupSaga ? `<span class="saga-pill" title="Franquicia/saga">🎞️ ${escapeHtml(groupSaga)}</span>` : ''}
-            <span class="genre-edit-btn" onclick="event.stopPropagation(); openGenreModal('movie', decodeURIComponent('${encodeURIComponent(title)}'))" title="Editar género y tipo">🏷️✎</span>
+            ${isFranchise ? `<span class="saga-pill" title="Franquicia">🎞️ Franquicia</span>` : `<span class="genre-edit-btn" onclick="event.stopPropagation(); openGenreModal('movie', decodeURIComponent('${encodeURIComponent(displayName)}'))" title="Editar género y tipo">🏷️✎</span>`}
             ${isPlaying ? `<span class="music-playing-indicator"><span class="dot"></span>sonando</span>` : ''}
             <span class="music-btn ${music ? 'has' : ''}"
-                  onclick="event.stopPropagation(); openMovieMusicPicker(decodeURIComponent('${encodeURIComponent(title)}'))"
+                  onclick="event.stopPropagation(); openMovieMusicPicker(decodeURIComponent('${encodeURIComponent(displayName)}'))"
                   title="${music ? 'Cambiar música de la carpeta: ' + escapeHtml(music.name) : 'Elegir música para esta carpeta'}">🎵</span>
-            ${music ? `<span class="remove-music" onclick="event.stopPropagation(); removeMovieFolderMusic(decodeURIComponent('${encodeURIComponent(title)}'))" title="Quitar música">✕</span>` : ''}
+            ${music ? `<span class="remove-music" onclick="event.stopPropagation(); removeMovieFolderMusic(decodeURIComponent('${encodeURIComponent(displayName)}'))" title="Quitar música">✕</span>` : ''}
           </div>
         </div>
+        ${progressBarHtml}
         <div class="entries-collapse ${isOpen ? 'open' : ''}">${cards}</div>
       </div>`;
   }).join('');
@@ -3686,9 +3833,11 @@ async function addMovieEntry(){
   const mGeneroVal = document.getElementById('mGenero').value;
   const mTipoVal = document.getElementById('mTipo').value;
   const mDuracionVal = parseInt(document.getElementById('mDuracion').value, 10);
+  const mFranquiciaVal = document.getElementById('mFranquicia').value;
   if(mGeneroVal){ movieGenres[mKey] = movieGenres[mKey] || []; if(!movieGenres[mKey].includes(mGeneroVal)) movieGenres[mKey].push(mGeneroVal); }
   if(mTipoVal) movieTypes[mKey] = mTipoVal;
   if(mDuracionVal > 0) movieDuration[mKey] = mDuracionVal;
+  if(mFranquiciaVal && mFranquiciaVal !== '__new__' && franchises[mFranquiciaVal]) movieSagas[mKey] = mFranquiciaVal;
 
   renderMovies();
   await saveAll();
@@ -3698,6 +3847,7 @@ async function addMovieEntry(){
   document.getElementById('mGenero').value = '';
   document.getElementById('mTipo').value = '';
   document.getElementById('mDuracion').value = '';
+  document.getElementById('mFranquicia').value = '';
   document.getElementById('mDateUnknown').checked = false;
   document.getElementById('mFecha').disabled = false;
   document.getElementById('mHora').disabled = false;
@@ -4082,30 +4232,23 @@ function folderMusicAssignedCount(){
   return Object.keys(folderMusic).length + Object.keys(movieFolderMusic).length;
 }
 
-/* Cuenta sagas/franquicias "completadas": requiere al menos 2 títulos etiquetados
-   con el mismo nombre de saga, y que todos estén completos
-   (series con estado "Terminada"; películas se consideran completas al estar registradas). */
-function completedFranchisesCount(){
-  const groups = {};
-  const seriesNames = [...new Set(entries.map(e => e.serie.trim()))];
-  seriesNames.forEach(name => {
-    const saga = (sagas[seriesKey(name)] || '').trim().toLowerCase();
-    if(!saga) return;
-    if(!groups[saga]) groups[saga] = { total: 0, complete: 0 };
-    groups[saga].total++;
-    if(getStatus(name) === 'terminada') groups[saga].complete++;
+/* Porcentaje de avance de la franquicia de películas más completa, según la meta
+   (cantidad total de películas) definida al crear cada franquicia.
+   Devuelve el mayor porcentaje alcanzado entre todas las franquicias creadas. */
+function bestFranchisePercent(){
+  const titlesWithEntries = new Set(movieEntries.map(e => seriesKey(e.title)));
+  let best = 0;
+  Object.keys(franchises).forEach(fKey => {
+    const goal = franchises[fKey].goal;
+    if(!(goal > 0)) return;
+    const watchedTitles = new Set();
+    Object.keys(movieSagas).forEach(titleKey => {
+      if(movieSagas[titleKey] === fKey && titlesWithEntries.has(titleKey)) watchedTitles.add(titleKey);
+    });
+    const pct = Math.min(100, Math.round((watchedTitles.size / goal) * 100));
+    if(pct > best) best = pct;
   });
-  const movieTitles = [...new Set(movieEntries.map(e => e.title.trim()))];
-  movieTitles.forEach(title => {
-    const saga = (movieSagas[seriesKey(title)] || '').trim().toLowerCase();
-    if(!saga) return;
-    if(!groups[saga]) groups[saga] = { total: 0, complete: 0 };
-    groups[saga].total++;
-    groups[saga].complete++; // una película registrada ya se considera vista
-  });
-  let count = 0;
-  Object.values(groups).forEach(g => { if(g.total >= 2 && g.complete === g.total) count++; });
-  return count;
+  return best;
 }
 
 const ACHIEVEMENTS = [
@@ -4129,8 +4272,8 @@ const ACHIEVEMENTS = [
     desc:(t) => `Mantener una racha de ${t} días seguidos viendo algo` },
   { id:'finde', icon:'🛋️', name:'Maratonista de fin de semana', tiers:[10,20,30], compute:weekendHoursCount,
     desc:(t) => `Acumular ${t}+ horas vistas, contando solo sábados y domingos` },
-  { id:'franquicias', icon:'🎞️', name:'Fan de franquicias', tiers:[2,5,10], compute:completedFranchisesCount,
-    desc:(t) => `Completar ${t} saga${t > 1 ? 's' : ''} (etiquetá 2+ títulos con la misma "Saga" en 🏷️✎ y marcalos como terminados)` },
+  { id:'franquicias', icon:'🎞️', name:'Fan de franquicias', tiers:[33,66,100], compute:bestFranchisePercent,
+    desc:(t) => `Llevar una franquicia de películas al ${t}% de su meta (creala desde "Registrar película")` },
   { id:'cronista', icon:'📝', name:'Cronista', tiers:[10,30,75], compute:writtenNotesCount,
     desc:(t) => `Escribir una nota o impresión en ${t} episodios/películas` },
   { id:'melomano', icon:'🎧', name:'Melómano', tiers:[3,10,25], compute:folderMusicAssignedCount,
@@ -4367,7 +4510,7 @@ function openGenreModal(type, name){
   const currentGenres = type === 'series' ? getGenreList(name) : getMovieGenreList(name);
   const currentType = type === 'series' ? getType(name) : getMovieType(name);
   const currentDuration = type === 'series' ? (seriesDuration[seriesKey(name)] || '') : (movieDuration[seriesKey(name)] || '');
-  const currentSaga = type === 'series' ? (sagas[seriesKey(name)] || '') : (movieSagas[seriesKey(name)] || '');
+  const currentSaga = sagas[seriesKey(name)] || '';
 
   document.getElementById('genreModalTitle').textContent = `Género y tipo — ${name}`;
   document.getElementById('genreCheckGrid').innerHTML = GENRES.map(g => `
@@ -4379,8 +4522,13 @@ function openGenreModal(type, name){
   document.getElementById('genreModalType').value = currentType || '';
   document.getElementById('genreModalDurationLabel').textContent = type === 'series' ? 'Duración por episodio (min)' : 'Duración de la película (min)';
   document.getElementById('genreModalDuration').value = currentDuration;
-  populateSagaList();
-  document.getElementById('genreModalSaga').value = currentSaga;
+  // La saga/franquicia de películas ahora se maneja con el sistema de franquicias (meta editable),
+  // así que este campo libre solo aplica a series.
+  document.getElementById('genreModalSagaRow').style.display = type === 'series' ? 'flex' : 'none';
+  if(type === 'series'){
+    populateSagaList();
+    document.getElementById('genreModalSaga').value = currentSaga;
+  }
   document.getElementById('genreModalOverlay').style.display = 'flex';
 }
 
@@ -4396,22 +4544,21 @@ async function saveGenreModal(){
   const selected = [...document.querySelectorAll('#genreCheckGrid input:checked')].map(i => i.value);
   const typeVal = document.getElementById('genreModalType').value;
   const durationVal = parseInt(document.getElementById('genreModalDuration').value, 10);
-  const sagaVal = document.getElementById('genreModalSaga').value.trim();
 
   if(type === 'series'){
+    const sagaVal = document.getElementById('genreModalSaga').value.trim();
     if(selected.length) genres[key] = selected; else delete genres[key];
     if(typeVal) types[key] = typeVal; else delete types[key];
     if(durationVal > 0) seriesDuration[key] = durationVal; else delete seriesDuration[key];
     if(sagaVal) sagas[key] = sagaVal; else delete sagas[key];
+    populateSagaList();
     render();
   } else {
     if(selected.length) movieGenres[key] = selected; else delete movieGenres[key];
     if(typeVal) movieTypes[key] = typeVal; else delete movieTypes[key];
     if(durationVal > 0) movieDuration[key] = durationVal; else delete movieDuration[key];
-    if(sagaVal) movieSagas[key] = sagaVal; else delete movieSagas[key];
     renderMovies();
   }
-  populateSagaList();
   closeGenreModal();
   await saveAll();
 }
@@ -4423,6 +4570,85 @@ document.getElementById('genreModalClose').addEventListener('click', closeGenreM
 document.getElementById('genreModalSave').addEventListener('click', saveGenreModal);
 document.getElementById('genreModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'genreModalOverlay') closeGenreModal();
+});
+
+/* ========================= FRANQUICIAS (solo películas) ========================= */
+function getFranchiseKey(title){ return movieSagas[seriesKey(title)] || null; }
+function getFranchiseName(fKey){ return (franchises[fKey] && franchises[fKey].name) || fKey; }
+
+function populateFranchiseSelects(){
+  const names = Object.keys(franchises).sort((a,b) => getFranchiseName(a).localeCompare(getFranchiseName(b), 'es', {sensitivity:'base'}));
+  const opts = '<option value="">Ninguna</option>'
+    + names.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(getFranchiseName(k))} (meta: ${franchises[k].goal})</option>`).join('')
+    + '<option value="__new__">✚ Crear nueva franquicia...</option>';
+  const sel = document.getElementById('mFranquicia');
+  if(sel){
+    const prev = sel.value;
+    sel.innerHTML = opts;
+    if(names.includes(prev)) sel.value = prev;
+  }
+}
+
+let franchiseModalPrevValue = '';
+function openCreateFranchiseModal(){
+  franchiseModalPrevValue = '';
+  document.getElementById('franchiseModalName').value = '';
+  document.getElementById('franchiseModalGoal').value = '';
+  document.getElementById('franchiseModalErr').style.display = 'none';
+  document.getElementById('franchiseModalOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('franchiseModalName').focus(), 30);
+}
+function closeCreateFranchiseModal(){
+  document.getElementById('franchiseModalOverlay').style.display = 'none';
+  const sel = document.getElementById('mFranquicia');
+  if(sel && sel.value === '__new__') sel.value = franchiseModalPrevValue || '';
+}
+async function saveCreateFranchiseModal(){
+  const name = document.getElementById('franchiseModalName').value.trim();
+  const goal = parseInt(document.getElementById('franchiseModalGoal').value, 10);
+  const errEl = document.getElementById('franchiseModalErr');
+  if(!name || !(goal > 0)){
+    errEl.textContent = 'Escribí un nombre y la cantidad total de películas.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const fKey = seriesKey(name);
+  if(franchises[fKey]){
+    errEl.textContent = 'Ya existe una franquicia con ese nombre.';
+    errEl.style.display = 'block';
+    return;
+  }
+  franchises[fKey] = { name, goal };
+  populateFranchiseSelects();
+  const sel = document.getElementById('mFranquicia');
+  if(sel) sel.value = fKey;
+  document.getElementById('franchiseModalOverlay').style.display = 'none';
+  renderMovies();
+  await saveAll();
+}
+async function setFranchiseGoal(fKey){
+  const current = franchises[fKey] ? franchises[fKey].goal : 0;
+  const input = await customPrompt(`¿Cuántas películas tiene en total la franquicia "${getFranchiseName(fKey)}"?`, current || '', { icon:'🎯', title:'Meta de la franquicia', okText:'Guardar' });
+  if(input === null) return; // cancelado
+  const n = parseInt(input, 10);
+  if(!(n > 0)) return;
+  if(!franchises[fKey]) franchises[fKey] = { name:getFranchiseName(fKey), goal:n };
+  else franchises[fKey].goal = n;
+  renderMovies();
+  await saveAll();
+}
+window.setFranchiseGoal = setFranchiseGoal;
+
+document.getElementById('mFranquicia').addEventListener('change', (e) => {
+  if(e.target.value === '__new__'){
+    franchiseModalPrevValue = '';
+    openCreateFranchiseModal();
+  }
+});
+document.getElementById('franchiseModalClose').addEventListener('click', closeCreateFranchiseModal);
+document.getElementById('franchiseModalSave').addEventListener('click', saveCreateFranchiseModal);
+document.getElementById('franchiseModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'franchiseModalOverlay') closeCreateFranchiseModal();
 });
 
 /* ========================= EDICIÓN EN BLOQUE ========================= */
