@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bitácora de Series y Películas</title>
 
-<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0e1216">
 <meta name="mobile-web-app-capable" content="yes">
@@ -747,6 +746,11 @@ body{
 .tag-pill.genre{ border-color:#4aa8e8; color:#4aa8e8; }
 .tag-pill.type-live{ border-color:#e88a4a; color:#e88a4a; }
 .tag-pill.type-animada{ border-color:#c04ae8; color:#c04ae8; }
+.saga-pill{
+  font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.5px;
+  padding:4px 9px; border-radius:20px; border:1px solid var(--star); color:var(--star);
+  white-space:nowrap; background:rgba(240,200,64,0.08);
+}
 .header-tags{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 
 /* ---------- Progress bar ---------- */
@@ -1578,6 +1582,11 @@ body{
         <label for="genreModalDuration" id="genreModalDurationLabel">Duración por episodio (min)</label>
         <input type="number" id="genreModalDuration" min="1" placeholder="Dejar vacío = usar el promedio general">
       </div>
+      <div class="field full-row">
+        <label for="genreModalSaga">Saga / Franquicia (opcional)</label>
+        <input type="text" id="genreModalSaga" list="sagaList" placeholder="Ej: Marvel, Star Wars, Harry Potter...">
+        <datalist id="sagaList"></datalist>
+      </div>
       <button class="btn-record" id="genreModalSave" style="margin-top:18px;">✔ Guardar</button>
     </div>
   </div>
@@ -1679,6 +1688,7 @@ let covers = {};         // { serieKeyLower: dataURL }
 let pending = [];        // [{id, serie, note}]
 let genres = {};         // { serieKeyLower: 'Acción'|... }
 let types = {};          // { serieKeyLower: 'live'|'animada' }
+let sagas = {};           // { serieKeyLower: 'Marvel'|'Star Wars'|... } — franquicia opcional
 let folderMusic = {};    // { serieKeyLower: {name, dataUrl} }
 let seriesGoals = {};    // { serieKeyLower: totalEpisodios (number) }
 let seriesDuration = {}; // { serieKeyLower: minutosPorEpisodio (number) } — pisa el promedio general por tipo
@@ -1688,6 +1698,7 @@ let movieCovers = {};    // { titleKeyLower: dataURL }
 let moviePending = [];   // [{id, title, note}]
 let movieGenres = {};    // { titleKeyLower: 'Acción'|... }
 let movieTypes = {};     // { titleKeyLower: 'live'|'animada' }
+let movieSagas = {};      // { titleKeyLower: 'Marvel'|'Star Wars'|... } — franquicia opcional
 let movieFolderMusic = {}; // { titleKeyLower: {name, dataUrl} }
 let movieDuration = {};  // { titleKeyLower: minutos (number) } — pisa el promedio general por tipo
 const DEFAULT_SETTINGS = {
@@ -1944,6 +1955,7 @@ async function loadAll(){
       pending = parsed.pending || [];
       genres = parsed.genres || {};
       types = parsed.types || {};
+      sagas = parsed.sagas || {};
       folderMusic = parsed.folderMusic || {};
       seriesGoals = parsed.seriesGoals || {};
       seriesDuration = parsed.seriesDuration || {};
@@ -1952,6 +1964,7 @@ async function loadAll(){
       moviePending = parsed.moviePending || [];
       movieGenres = parsed.movieGenres || {};
       movieTypes = parsed.movieTypes || {};
+      movieSagas = parsed.movieSagas || {};
       movieFolderMusic = parsed.movieFolderMusic || {};
       movieDuration = parsed.movieDuration || {};
       settings = normalizeSettings(parsed.settings);
@@ -1969,6 +1982,7 @@ async function loadAll(){
   const abandonedChanged = autoUpdateAbandonedSeries();
   const trashPurged = purgeOldTrash();
   populateGenreSelects();
+  populateSagaList();
   populateSettingsUI();
   render();
   renderMovies();
@@ -1983,8 +1997,8 @@ async function loadAll(){
 async function saveAll(){
   try{
     const dataToSave = JSON.stringify({
-      entries, status, statusManualAt, trash, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
-      movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieFolderMusic, movieDuration, settings
+      entries, status, statusManualAt, trash, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+      movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, movieFolderMusic, movieDuration, settings
     });
     localStorage.setItem(DATA_KEY, dataToSave);
   } catch(e){
@@ -1998,8 +2012,8 @@ async function saveAll(){
 /* ========================= BACKUP: exportar / restaurar todo ========================= */
 function collectAllData(){
   return {
-    entries, status, statusManualAt, trash, covers, pending, genres, types, folderMusic, seriesGoals, seriesDuration,
-    movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieFolderMusic, movieDuration, settings,
+    entries, status, statusManualAt, trash, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+    movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
   };
@@ -2017,6 +2031,7 @@ function applyAllData(parsed){
   pending = parsed.pending || [];
   genres = parsed.genres || {};
   types = parsed.types || {};
+  sagas = parsed.sagas || {};
   folderMusic = parsed.folderMusic || {};
   seriesGoals = parsed.seriesGoals || {};
   seriesDuration = parsed.seriesDuration || {};
@@ -2025,6 +2040,7 @@ function applyAllData(parsed){
   moviePending = parsed.moviePending || [];
   movieGenres = parsed.movieGenres || {};
   movieTypes = parsed.movieTypes || {};
+  movieSagas = parsed.movieSagas || {};
   movieFolderMusic = parsed.movieFolderMusic || {};
   movieDuration = parsed.movieDuration || {};
   settings = normalizeSettings(parsed.settings);
@@ -2035,6 +2051,7 @@ function applyAllData(parsed){
   purgeOldTrash();
 
   populateGenreSelects();
+  populateSagaList();
   populateSettingsUI();
   render();
   renderMovies();
@@ -2399,6 +2416,14 @@ function populateGenreSelects(){
   if(mFilter) mFilter.innerHTML = filterOpts;
   const rFilter = document.getElementById('rankGenreFilter');
   if(rFilter) rFilter.innerHTML = filterOpts;
+}
+
+function populateSagaList(){
+  const set = new Set();
+  Object.values(sagas).forEach(s => { if(s) set.add(s); });
+  Object.values(movieSagas).forEach(s => { if(s) set.add(s); });
+  const list = document.getElementById('sagaList');
+  if(list) list.innerHTML = [...set].sort((a,b) => a.localeCompare(b)).map(s => `<option value="${escapeHtml(s)}"></option>`).join('');
 }
 
 function getGenreList(name){ return genres[seriesKey(name)] || []; }
@@ -2905,6 +2930,7 @@ function render(){
 
     const groupGenre = getGenre(serie);
     const groupType = getType(serie);
+    const groupSaga = sagas[seriesKey(serie)] || '';
     const music = folderMusic[seriesKey(serie)] || null;
     const isPlaying = currentAudioKey === 'series:' + seriesKey(serie);
 
@@ -2933,6 +2959,7 @@ function render(){
           </div>
           <div class="header-tags">
             ${tagsHtml(groupGenre, groupType)}
+            ${groupSaga ? `<span class="saga-pill" title="Franquicia/saga">🎞️ ${escapeHtml(groupSaga)}</span>` : ''}
             <span class="genre-edit-btn" onclick="event.stopPropagation(); openGenreModal('series', decodeURIComponent('${encodeURIComponent(serie)}'))" title="Editar género y tipo">🏷️✎</span>
             ${isPlaying ? `<span class="music-playing-indicator"><span class="dot"></span>sonando</span>` : ''}
             <span class="music-btn ${music ? 'has' : ''}"
@@ -3523,6 +3550,7 @@ function renderMovies(){
 
     const groupGenre = getMovieGenre(title);
     const groupType = getMovieType(title);
+    const groupSaga = movieSagas[seriesKey(title)] || '';
     const music = movieFolderMusic[seriesKey(title)] || null;
     const isPlaying = currentAudioKey === 'movie:' + seriesKey(title);
 
@@ -3540,6 +3568,7 @@ function renderMovies(){
           </div>
           <div class="header-tags">
             ${tagsHtml(groupGenre, groupType)}
+            ${groupSaga ? `<span class="saga-pill" title="Franquicia/saga">🎞️ ${escapeHtml(groupSaga)}</span>` : ''}
             <span class="genre-edit-btn" onclick="event.stopPropagation(); openGenreModal('movie', decodeURIComponent('${encodeURIComponent(title)}'))" title="Editar género y tipo">🏷️✎</span>
             ${isPlaying ? `<span class="music-playing-indicator"><span class="dot"></span>sonando</span>` : ''}
             <span class="music-btn ${music ? 'has' : ''}"
@@ -3963,6 +3992,65 @@ function longestStreak(){
   return longest;
 }
 
+function isWeekendDate(dateStr){
+  if(!dateStr) return false;
+  const day = new Date(dateStr + 'T00:00:00').getDay();
+  return day === 0 || day === 6; // domingo o sábado
+}
+function estimateSeriesEpisodeMinutes(serie){
+  const key = seriesKey(serie);
+  if(seriesDuration[key] > 0) return seriesDuration[key];
+  const t = getType(serie);
+  return t === 'live' ? settings.episodeLive : t === 'animada' ? settings.episodeAnimada : settings.episodeDefault;
+}
+function estimateMovieMinutes(title){
+  const key = seriesKey(title);
+  if(movieDuration[key] > 0) return movieDuration[key];
+  const t = getMovieType(title);
+  return t === 'live' ? settings.movieLive : t === 'animada' ? settings.movieAnimada : settings.movieDefault;
+}
+/* Horas totales vistas, contando solo registros con fecha en sábado o domingo */
+function weekendHoursCount(){
+  let minutes = 0;
+  entries.forEach(e => { if(isWeekendDate(e.date)) minutes += estimateSeriesEpisodeMinutes(e.serie); });
+  movieEntries.forEach(e => { if(isWeekendDate(e.date)) minutes += estimateMovieMinutes(e.title); });
+  return Math.floor(minutes / 60);
+}
+/* Cantidad de registros (episodios o películas) con una nota/impresión escrita */
+function writtenNotesCount(){
+  return entries.filter(e => e.note && e.note.trim()).length + movieEntries.filter(e => e.note && e.note.trim()).length;
+}
+/* Cantidad de series o películas distintas con música de carpeta asignada */
+function folderMusicAssignedCount(){
+  return Object.keys(folderMusic).length + Object.keys(movieFolderMusic).length;
+}
+
+/* Cuenta sagas/franquicias "completadas": requiere al menos 2 títulos etiquetados
+   con el mismo nombre de saga, y que todos estén completos
+   (series con estado "Terminada"; películas se consideran completas al estar registradas). */
+function completedFranchisesCount(){
+  const groups = {};
+  const seriesNames = [...new Set(entries.map(e => e.serie.trim()))];
+  seriesNames.forEach(name => {
+    const saga = (sagas[seriesKey(name)] || '').trim().toLowerCase();
+    if(!saga) return;
+    if(!groups[saga]) groups[saga] = { total: 0, complete: 0 };
+    groups[saga].total++;
+    if(getStatus(name) === 'terminada') groups[saga].complete++;
+  });
+  const movieTitles = [...new Set(movieEntries.map(e => e.title.trim()))];
+  movieTitles.forEach(title => {
+    const saga = (movieSagas[seriesKey(title)] || '').trim().toLowerCase();
+    if(!saga) return;
+    if(!groups[saga]) groups[saga] = { total: 0, complete: 0 };
+    groups[saga].total++;
+    groups[saga].complete++; // una película registrada ya se considera vista
+  });
+  let count = 0;
+  Object.values(groups).forEach(g => { if(g.total >= 2 && g.complete === g.total) count++; });
+  return count;
+}
+
 const ACHIEVEMENTS = [
   { id:'maraton', icon:'🔥', name:'Maratonista', tiers:[4,8,15], compute:maxDailyCount,
     desc:(t) => `Ver ${t}+ episodios o películas en un mismo día` },
@@ -3981,7 +4069,15 @@ const ACHIEVEMENTS = [
   { id:'critico', icon:'⭐', name:'Crítico', tiers:[10,30,75], compute:ratedItemsCount,
     desc:(t) => `Calificar ${t} episodios/películas` },
   { id:'racha', icon:'🔗', name:'Racha imparable', tiers:[3,7,14], compute:longestStreak,
-    desc:(t) => `Mantener una racha de ${t} días seguidos viendo algo` }
+    desc:(t) => `Mantener una racha de ${t} días seguidos viendo algo` },
+  { id:'finde', icon:'🛋️', name:'Maratonista de fin de semana', tiers:[10,20,30], compute:weekendHoursCount,
+    desc:(t) => `Acumular ${t}+ horas vistas, contando solo sábados y domingos` },
+  { id:'franquicias', icon:'🎞️', name:'Fan de franquicias', tiers:[2,5,10], compute:completedFranchisesCount,
+    desc:(t) => `Completar ${t} saga${t > 1 ? 's' : ''} (etiquetá 2+ títulos con la misma "Saga" en 🏷️✎ y marcalos como terminados)` },
+  { id:'cronista', icon:'📝', name:'Cronista', tiers:[10,30,75], compute:writtenNotesCount,
+    desc:(t) => `Escribir una nota o impresión en ${t} episodios/películas` },
+  { id:'melomano', icon:'🎧', name:'Melómano', tiers:[3,10,25], compute:folderMusicAssignedCount,
+    desc:(t) => `Asignarle música de carpeta a ${t} series o películas distintas` }
 ];
 const ACHV_TIER_LABELS = ['Bronce','Plata','Oro'];
 
@@ -4099,6 +4195,7 @@ function openGenreModal(type, name){
   const currentGenres = type === 'series' ? getGenreList(name) : getMovieGenreList(name);
   const currentType = type === 'series' ? getType(name) : getMovieType(name);
   const currentDuration = type === 'series' ? (seriesDuration[seriesKey(name)] || '') : (movieDuration[seriesKey(name)] || '');
+  const currentSaga = type === 'series' ? (sagas[seriesKey(name)] || '') : (movieSagas[seriesKey(name)] || '');
 
   document.getElementById('genreModalTitle').textContent = `Género y tipo — ${name}`;
   document.getElementById('genreCheckGrid').innerHTML = GENRES.map(g => `
@@ -4110,6 +4207,8 @@ function openGenreModal(type, name){
   document.getElementById('genreModalType').value = currentType || '';
   document.getElementById('genreModalDurationLabel').textContent = type === 'series' ? 'Duración por episodio (min)' : 'Duración de la película (min)';
   document.getElementById('genreModalDuration').value = currentDuration;
+  populateSagaList();
+  document.getElementById('genreModalSaga').value = currentSaga;
   document.getElementById('genreModalOverlay').style.display = 'flex';
 }
 
@@ -4125,18 +4224,22 @@ async function saveGenreModal(){
   const selected = [...document.querySelectorAll('#genreCheckGrid input:checked')].map(i => i.value);
   const typeVal = document.getElementById('genreModalType').value;
   const durationVal = parseInt(document.getElementById('genreModalDuration').value, 10);
+  const sagaVal = document.getElementById('genreModalSaga').value.trim();
 
   if(type === 'series'){
     if(selected.length) genres[key] = selected; else delete genres[key];
     if(typeVal) types[key] = typeVal; else delete types[key];
     if(durationVal > 0) seriesDuration[key] = durationVal; else delete seriesDuration[key];
+    if(sagaVal) sagas[key] = sagaVal; else delete sagas[key];
     render();
   } else {
     if(selected.length) movieGenres[key] = selected; else delete movieGenres[key];
     if(typeVal) movieTypes[key] = typeVal; else delete movieTypes[key];
     if(durationVal > 0) movieDuration[key] = durationVal; else delete movieDuration[key];
+    if(sagaVal) movieSagas[key] = sagaVal; else delete movieSagas[key];
     renderMovies();
   }
+  populateSagaList();
   closeGenreModal();
   await saveAll();
 }
