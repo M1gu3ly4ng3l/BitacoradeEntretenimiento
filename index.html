@@ -45,7 +45,6 @@ body{
   padding:28px 20px 60px;
 }
 
-/* ---------- Header : deck faceplate ---------- */
 .deck{
   background:linear-gradient(180deg,#181e25,#12161b);
   border:1px solid var(--line);
@@ -246,7 +245,6 @@ body{
 .genre-check-pill input{ accent-color:var(--rewatch); cursor:pointer; }
 .genre-check-pill.checked{ border-color:var(--rewatch); color:var(--text); background:rgba(167,139,250,0.08); }
 
-/* ---------- Tabs ---------- */
 .tab-bar-spacer{ display:none; }
 .tab-bar{
   display:flex; gap:8px;
@@ -279,7 +277,7 @@ body{
 .tab-btn.achievements-tab.active{ border-color:#f0a840; }
 .tab-icon{ margin-right:6px; }
 
-/* ---------- Búsqueda global (botón flotante) ---------- */
+/*Búsqueda global*/
 #globalSearchFab{
   position:fixed; right:20px; bottom:24px; z-index:520;
   width:52px; height:52px; border-radius:50%;
@@ -291,8 +289,6 @@ body{
 #globalSearchFab:hover{ filter:brightness(1.08); }
 #globalSearchFab:active{ transform:scale(0.96); }
 
-/* En pantallas de celular, la tab-bar se vuelve una barra de navegación
-   inferior fija, al estilo de una app nativa. */
 @media (max-width:780px){
   .tab-bar-spacer{ display:block; height:calc(64px + env(safe-area-inset-bottom)); }
   .tab-bar{
@@ -326,7 +322,7 @@ body{
   .toolbar select{ width:100%; }
 }
 
-/* ---------- Racha (streak) ---------- */
+/*Racha (streak)*/
 .streak-banner{
   display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg, #2e2416, var(--bg-panel));
@@ -339,7 +335,7 @@ body{
 .streak-banner.zero{ border-color:var(--line); }
 .streak-banner.zero .streak-fire{ filter:none; opacity:0.4; }
 
-/* ---------- Mapa de actividad (heatmap) ---------- */
+/*Mapa de actividad*/
 .activity-header{
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:14px; flex-wrap:wrap; gap:10px;
@@ -417,6 +413,7 @@ body{
 }
 .subtab-btn.active{ border-color:var(--amber); color:var(--amber); background:rgba(240,168,64,0.08); }
 .subtab-btn.random-btn{ border-color:var(--rewatch); color:var(--rewatch); }
+.subtab-btn.discover-btn{ border-color:#e88a4a; color:#e88a4a; }
 .subtab-btn.random-btn:hover{ background:rgba(167,139,250,0.1); }
 .subtab-count{
   background:var(--amber); color:var(--bg); font-size:10px; font-weight:700;
@@ -437,13 +434,11 @@ body{
 .random-modal-actions .btn-secondary{ flex:1; }
 .random-modal-actions .btn-record{ flex:1; margin-top:0; }
 
-/* ---------- Diálogo genérico (alert/confirm/prompt) ---------- */
 #dialogTitle{ margin-bottom:8px; }
 #dialogMessage{ margin-bottom:2px; }
 #dialogInputWrap{ margin-top:14px; }
 #dialogInputWrap input{ text-align:center; }
 
-/* ---------- Form panel ---------- */
 .panel{
   background:var(--bg-panel);
   border:1px solid var(--line);
@@ -506,7 +501,7 @@ body{
 
 .serie-row{ display:flex; gap:6px; }
 
-/* ---------- Búsqueda de título (Jikan/TMDB) ---------- */
+/*Búsqueda de título (Jikan/TMDB)*/
 .title-search-source-row{ display:flex; gap:14px; margin:2px 0 14px; flex-wrap:wrap; }
 .title-search-result{
   display:flex; align-items:center; gap:10px;
@@ -522,6 +517,15 @@ body{
 .title-search-result-info{ flex:1; min-width:0; }
 .title-search-result-name{ font-size:13px; color:var(--text); font-weight:600; }
 .title-search-result-sub{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+.discover-result{ cursor:default; }
+.discover-result:hover{ border-color:var(--line); }
+.discover-add-btn{
+  flex-shrink:0; width:34px; height:34px; border-radius:8px;
+  border:1px solid var(--tape); background:rgba(74,222,128,0.08); color:var(--tape);
+  font-size:15px; cursor:pointer;
+}
+.discover-add-btn:hover{ background:rgba(74,222,128,0.2); }
+.discover-add-btn:disabled{ opacity:0.5; cursor:default; border-color:var(--line); color:var(--text-dim); background:none; }
 .serie-row input{ flex:1; min-width:0; }
 .cover-mini-btn{
   flex-shrink:0;
@@ -644,7 +648,6 @@ body{
   .bulk-row input.bulk-note{ grid-area:note; }
 }
 
-/* ---------- Pending panels ---------- */
 .pending-panel{ border-color:var(--amber); }
 .pending-add-row{ display:flex; gap:8px; flex-wrap:wrap; }
 .pending-add-row input{
@@ -677,7 +680,7 @@ body{
   padding:16px; border:1px dashed var(--line); border-radius:8px;
 }
 
-/* ---------- Papelera ---------- */
+/*Papelera*/
 .trash-item{
   background:var(--bg-card);
   border:1px solid var(--line);
@@ -692,7 +695,7 @@ body{
 .trash-meta{ font-size:11px; color:var(--text-dim); margin-top:2px; }
 .trash-actions{ display:flex; gap:6px; flex-shrink:0; }
 
-/* ---------- Toolbar ---------- */
+/*Toolbar*/
 .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
 .toolbar input[type="text"]{
   flex:1 1 200px;
@@ -714,7 +717,7 @@ body{
 .toolbar-btn:hover{ border-color:#4aa8e8; color:#4aa8e8; }
 .toolbar-btn.active{ border-color:#4aa8e8; color:#4aa8e8; background:rgba(74,168,232,0.1); }
 
-/* ---------- Recordatorio de backup ---------- */
+/*Recordatorio de backup*/
 .backup-reminder-banner{
   display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
   background:rgba(240,168,64,0.08); border:1px solid var(--amber); border-radius:10px;
@@ -727,7 +730,7 @@ body{
 }
 .backup-reminder-actions button:hover{ background:rgba(240,168,64,0.15); }
 
-/* ---------- Log list ---------- */
+/*Log list*/
 .log-label{
   font-family:'Oswald', sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase;
   color:var(--text-dim); margin:6px 0 14px 2px;
@@ -781,7 +784,7 @@ body{
 .entries-collapse{ display:none; padding-left:4px; }
 .entries-collapse.open{ display:block; }
 
-/* ---------- Genre / type tags ---------- */
+/*Género*/
 .tag-pill{
   font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.5px;
   padding:4px 9px; border-radius:20px; border:1px solid var(--line); color:var(--text-dim);
@@ -797,7 +800,7 @@ body{
 }
 .header-tags{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 
-/* ---------- Progress bar ---------- */
+/*Barra de progreso*/
 .progress-row{
   display:flex; align-items:center; gap:10px;
   margin:0 0 10px 2px; padding-right:6px;
@@ -821,6 +824,11 @@ body{
   text-decoration:underline; letter-spacing:0.3px; padding:0; flex-shrink:0;
 }
 .progress-goal-btn:hover{ color:var(--tape); }
+.progress-refresh-btn{
+  background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:12px;
+  padding:0; flex-shrink:0; line-height:1;
+}
+.progress-refresh-btn:hover{ color:#4aa8e8; transform:rotate(45deg); }
 .goal-btn{
   flex-shrink:0; width:34px; height:34px; border-radius:8px;
   display:flex; align-items:center; justify-content:center;
@@ -839,7 +847,7 @@ body{
 }
 .genre-edit-btn:hover{ opacity:1; border-color:var(--rewatch); color:var(--rewatch); }
 
-/* ---------- Folder music control ---------- */
+/*Música*/
 .music-btn{
   flex-shrink:0; width:34px; height:34px; border-radius:8px;
   display:flex; align-items:center; justify-content:center;
@@ -869,7 +877,7 @@ body{
   width:18px; height:18px; accent-color:#4aa8e8; cursor:pointer; flex-shrink:0; margin-right:2px;
 }
 
-/* ---------- Barra de edición en bloque ---------- */
+/*Barra de edición en bloque*/
 .bulk-action-bar{
   position:sticky; top:8px; z-index:15;
   display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
@@ -958,7 +966,7 @@ body{
   .edit-grid{ grid-template-columns:1fr 1fr; }
 }
 
-/* ---------- Toast (deshacer) ---------- */
+/*Noti de Deshacer*/
 .toast-container{
   position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
   z-index:600; display:flex; flex-direction:column; gap:8px; align-items:center;
@@ -979,7 +987,7 @@ body{
 }
 .toast-undo:hover{ background:rgba(74,222,128,0.12); }
 
-/* ---------- Continuar viendo ---------- */
+/*Continuar viendo*/
 .cw-list{ display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
 .cw-card{
   flex:0 0 auto; width:180px; background:var(--bg-card); border:1px solid var(--line); border-radius:10px;
@@ -1011,23 +1019,23 @@ body{
 .quick-log-btn:active{ transform:scale(0.99); }
 .cw-empty{ font-size:12px; color:var(--text-dim); font-style:italic; }
 
-/* ---------- Antigüedad pendientes ---------- */
+/*Antigüedad de pendientes*/
 .pending-age{ font-size:10px; color:var(--text-dim); margin-top:2px; }
 .pending-age.stale{ color:var(--amber); }
 
-/* ---------- Tendencia mensual ---------- */
+/*Tendencia mensual*/
 .trend-chart-wrap{ margin-top:18px; }
 .trend-svg{ width:100%; height:auto; display:block; }
 .trend-empty{ font-size:12px; color:var(--text-dim); font-style:italic; padding:10px 0; }
 
-/* ---------- Mapa de géneros ---------- */
+/*Mapa de géneros*/
 .genre-bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
 .genre-bar-name{ width:110px; flex-shrink:0; font-size:11.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .genre-bar-track{ flex:1; height:14px; border-radius:7px; background:var(--bg-card); border:1px solid var(--line); overflow:hidden; }
 .genre-bar-fill{ height:100%; border-radius:7px 0 0 7px; background:linear-gradient(90deg,#4aa8e8,#a78bfa); }
 .genre-bar-pct{ width:56px; flex-shrink:0; font-size:11px; color:var(--text-dim); text-align:right; }
 
-/* ---------- Logros ---------- */
+/*Logros*/
 .achievements-summary{
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
 }
@@ -1057,7 +1065,7 @@ body{
 .achv-badge-dot{ width:7px; height:7px; border-radius:50%; background:var(--line); }
 .achv-badge-dot.on{ background:var(--star); }
 
-/* ---------- Logros personalizados (Diamante) ---------- */
+/*Logros personalizados (Diamante)*/
 .achv-section-label{
   font-family:'Oswald', sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase;
   color:var(--text-dim); margin:22px 0 12px 2px;
@@ -1077,13 +1085,13 @@ body{
 }
 .achv-delete:hover{ color:var(--rec); opacity:1; }
 
-/* ---------- Ajustes de tiempo (duración promedio) ---------- */
+/*Ajustes de tiempo (duración promedio)*/
 .settings-row{ display:flex; gap:8px; margin-top:10px; }
 .settings-row .field{ flex:1; }
 .settings-row .field label{ font-size:9.5px; }
 .settings-row .field input{ padding:7px 8px; font-size:12.5px; }
 
-/* ---------- Descargar slide de Wrapped ---------- */
+/*Descargar slide de Wrapped*/
 .wrapped-download-btn{
   position:absolute; top:14px; left:14px; background:none; border:1px solid rgba(255,255,255,0.25);
   color:rgba(255,255,255,0.85); border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;
@@ -1091,7 +1099,7 @@ body{
 }
 .wrapped-download-btn:hover{ border-color:#fff; color:#fff; }
 
-/* ---------- Google Drive sync ---------- */
+/*Google Drive sync*/
 .drive-row{ display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .drive-status{
   font-size:10.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px; flex:1;
@@ -1184,6 +1192,7 @@ body{
       <button class="subtab-btn active" id="subBtnSeriesLog" onclick="switchSeriesSub('log')">📖 Mi registro</button>
       <button class="subtab-btn" id="subBtnSeriesPending" onclick="switchSeriesSub('pending')">📌 Pendientes <span class="subtab-count" id="pendingCount">0</span></button>
       <button class="subtab-btn random-btn" id="btnRandomPick" onclick="openRandomModal()">🎲 Selección aleatoria</button>
+      <button class="subtab-btn discover-btn" id="btnDiscoverSeries" onclick="openDiscoverModal('series')">🔥 Descubrir</button>
     </div>
 
     <div id="seriesLogView">
@@ -1383,6 +1392,7 @@ body{
     <div class="subtab-bar">
       <button class="subtab-btn active" id="subBtnMoviesLog" onclick="switchMovieSub('log')">🎬 Vistas</button>
       <button class="subtab-btn" id="subBtnMoviesPending" onclick="switchMovieSub('pending')">📌 Pendientes <span class="subtab-count" id="moviePendingCount">0</span></button>
+      <button class="subtab-btn discover-btn" id="btnDiscoverMovies" onclick="openDiscoverModal('movie')">🔥 Descubrir</button>
     </div>
 
     <div id="movieLogView">
@@ -1683,6 +1693,17 @@ body{
     </div>
   </div>
 
+  <div class="modal-overlay" id="discoverModalOverlay" style="display:none;">
+    <div class="modal-card" style="max-width:440px;">
+      <button class="wrapped-close" id="discoverModalClose" title="Cerrar">✕</button>
+      <div class="panel-label" id="discoverModalTitle">🔥 Tendencias</div>
+      <div style="font-size:11px; color:var(--text-dim); margin:-6px 0 10px;">Basado en lo que está sonando esta semana en TMDB, sin repetir lo que ya tenés registrado o pendiente.</div>
+      <div id="discoverStatus" style="font-size:12px; color:var(--text-dim); margin-bottom:8px;"></div>
+      <div id="discoverResults" style="display:flex; flex-direction:column; gap:8px; max-height:52vh; overflow-y:auto;"></div>
+      <button type="button" class="btn-secondary" id="discoverRefreshBtn" style="margin-top:14px;">🔄 Actualizar tendencias</button>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="titleSearchModalOverlay" style="display:none;">
     <div class="modal-card" style="max-width:420px;">
       <button class="wrapped-close" id="titleSearchModalClose" title="Cerrar">✕</button>
@@ -1906,6 +1927,7 @@ let movieSagas = {};      // { titleKeyLower: franchiseKey } — a qué franquic
 let franchises = {};       // { franchiseKey: { name:'UCM', goal: 33 } } — registro de franquicias con meta editable
 let movieFolderMusic = {}; // { titleKeyLower: {name, dataUrl} }
 let movieDuration = {};  // { titleKeyLower: minutos (number) } — pisa el promedio general por tipo
+let seriesApiLink = {};   // { serieKeyLower: {source:'jikan'|'tmdb', malId, tmdbId, tmdbMediaType, lastChecked} } — para actualizar la meta sola
 // Datos traídos de Jikan/TMDB en la última búsqueda seleccionada, a la espera de que se registre el visionado
 let pendingApiGenresSeries = null;
 let pendingApiEpisodesSeries = null;
@@ -2207,6 +2229,7 @@ async function loadAll(){
       folderMusic = parsed.folderMusic || {};
       seriesGoals = parsed.seriesGoals || {};
       seriesDuration = parsed.seriesDuration || {};
+      seriesApiLink = parsed.seriesApiLink || {};
       movieEntries = parsed.movieEntries || [];
       movieCovers = parsed.movieCovers || {};
       moviePending = parsed.moviePending || [];
@@ -2249,12 +2272,13 @@ async function loadAll(){
   updateGlobalStats();
   if(abandonedChanged || trashPurged) await saveAll();
   checkBackupReminder();
+  autoRefreshLinkedSeriesGoals(); // en segundo plano, no bloquea el arranque
 }
 
 async function saveAll(){
   try{
     const dataToSave = JSON.stringify({
-      entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+      entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration, seriesApiLink,
       movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings
     });
     localStorage.setItem(DATA_KEY, dataToSave);
@@ -2266,10 +2290,10 @@ async function saveAll(){
   scheduleDriveUpload();
 }
 
-/* ========================= BACKUP: exportar / restaurar todo ========================= */
+/*BACKUP: exportar / restaurar todo*/
 function collectAllData(){
   return {
-    entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+    entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration, seriesApiLink,
     movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
@@ -2294,6 +2318,7 @@ function applyAllData(parsed){
   folderMusic = parsed.folderMusic || {};
   seriesGoals = parsed.seriesGoals || {};
   seriesDuration = parsed.seriesDuration || {};
+  seriesApiLink = parsed.seriesApiLink || {};
   movieEntries = parsed.movieEntries || [];
   movieCovers = parsed.movieCovers || {};
   moviePending = parsed.moviePending || [];
@@ -2373,7 +2398,7 @@ document.getElementById('backupFileInput').addEventListener('change', async (e) 
   }
 });
 
-/* ========================= RECORDATORIO DE BACKUP ========================= */
+/*RECORDATORIO DE BACKUP*/
 const BACKUP_REMINDER_DAYS = 30;
 const BACKUP_SNOOZE_DAYS = 7;
 
@@ -2409,7 +2434,7 @@ document.getElementById('backupReminderDismissBtn').addEventListener('click', ()
   hideBackupReminder();
 });
 
-/* ========================= GOOGLE DRIVE SYNC ========================= */
+/*GOOGLE DRIVE SYNC*/
 const GOOGLE_CLIENT_ID = '918938628120-v4lf1fst2sc7cq348h777jc7i8ak77vs.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILE_NAME = 'bitacora-datos.json';
@@ -2433,18 +2458,7 @@ function driveSetStatus(mode, text){
   document.getElementById('driveStatusText').textContent = text;
 }
 
-/* ========================= FUSIÓN DE 3 VÍAS (evita perder registros al sincronizar) =========================
-   En vez de "el que suba último gana", comparamos: la última versión sincronizada en común (base),
-   lo que hay en este dispositivo (local) y lo que hay en Drive (remoto). Así:
-   - Lo agregado en un solo lado (celular o PC) se conserva siempre, sin importar quién sincronizó primero.
-   - Lo borrado en un lado se respeta (no se "resucita") siempre que el otro lado no lo haya modificado después.
-   - Solo si el MISMO registro fue editado distinto en ambos lados se usa un desempate (gana el que cambió más recientemente).
-
-   IMPORTANTE: la "base" NO guarda una copia completa de los datos (eso incluía los audios en base64 de
-   folderMusic/movieFolderMusic, que pueden pesar varios MB y hacían fallar el localStorage.setItem en silencio,
-   dejando la base vacía/corrupta — y una base vacía hace que CUALQUIER borrado se interprete como "es nuevo,
-   lo traigo de vuelta"). En vez de eso, guardamos solo un "recibo" liviano: los IDs de cada lista y un hash
-   corto por cada valor de los diccionarios. Alcanza para saber qué existía antes, sin duplicar los datos pesados. */
+/*FUSIÓN DE 3 VÍAS (evita perder registros al sincronizar)*/
 const DRIVE_BASE_SNAPSHOT_VERSION = 2;
 
 function cheapHash(str){
@@ -2619,7 +2633,6 @@ function initGoogleDrive(){
       return;
     }
 
-    // Si no, intentamos una conexión silenciosa (puede fallar sin avisar en varios navegadores/móviles)
     requestDriveToken(false);
   }catch(err){
     console.warn('No se pudo inicializar Google Identity Services:', err);
@@ -2669,7 +2682,6 @@ async function driveApiFetch(url, options = {}){
 
   let res = await doFetch();
   if(res.status === 401){
-    // El token venció antes de lo esperado: probamos UNA reconexión silenciosa antes de rendirnos
     const retryResp = await requestDriveTokenSilentPromise();
     if(retryResp){
       driveAccessToken = retryResp.access_token;
@@ -2750,10 +2762,6 @@ async function driveMergeWithRemote(){
       const remoteData = await driveDownloadFile(driveFileId);
       const base = driveGetBaseSnapshot();
 
-      // Sacamos una foto de "por si ya está todo igual" para evitar trabajo de más,
-      // pero la que realmente se usa para fusionar se vuelve a tomar más abajo, FRESCA,
-      // justo antes de aplicar el resultado — para no pisar cambios hechos mientras
-      // esperábamos la respuesta de Drive.
       if(JSON.stringify(remoteData) === JSON.stringify(collectAllData())){
         driveSetBaseSnapshot(collectAllData());
         localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
@@ -2766,8 +2774,6 @@ async function driveMergeWithRemote(){
       const remoteModified = remoteMeta ? remoteMeta.modifiedTime : null;
       const preferLocal = !remoteModified || (lastLocalChange && new Date(lastLocalChange) > new Date(remoteModified));
 
-      // A partir de aquí todo es síncrono (sin await) hasta terminar de aplicar el
-      // resultado, así ninguna otra edición del usuario puede meterse en el medio.
       const freshLocalData = collectAllData();
       const merged = mergeAllData(base, freshLocalData, remoteData, preferLocal);
 
@@ -2860,7 +2866,7 @@ document.getElementById('btnSyncDriveNow').addEventListener('click', async () =>
 
 window.addEventListener('load', initGoogleDrive);
 
-/* ========================= PWA: instalación y service worker ========================= */
+/*PWA: instalación y service worker*/
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((err) => {
@@ -2897,7 +2903,7 @@ if(isIos && !isStandalone){
 }
 
 
-/* ========================= AJUSTES: duración promedio ========================= */
+/*AJUSTES: duración promedio*/
 function populateSettingsUI(){
   // No-op: los valores se cargan al abrir el modal de duración (openDurationSettings)
 }
@@ -2948,7 +2954,7 @@ document.getElementById('apiSettingsModalOverlay').addEventListener('click', (e)
   if(e.target.id === 'apiSettingsModalOverlay') closeApiSettings();
 });
 
-/* ========================= BÚSQUEDA EXTERNA (Jikan / TMDB) ========================= */
+/*BÚSQUEDA EXTERNA (Jikan / TMDB)*/
 const EXTERNAL_GENRE_MAP = {
   'accion': 'Acción', 'accion y aventura': 'Acción', 'action': 'Acción',
   'aventura': 'Aventura', 'adventure': 'Aventura',
@@ -3015,6 +3021,7 @@ async function jikanSearch(query){
   const data = await res.json();
   return (data.data || []).map(item => ({
     source: 'jikan',
+    malId: item.mal_id,
     title: item.title,
     subtitle: [item.type, item.year, (item.episodes ? item.episodes + ' ep.' : '')].filter(Boolean).join(' · '),
     imageUrl: (item.images && item.images.jpg && (item.images.jpg.large_image_url || item.images.jpg.image_url)) || null,
@@ -3126,7 +3133,11 @@ async function selectTitleSearchResult(idx){
     coverValue = await fetchImageAsDataUrl(r.imageUrl);
   }
 
-  await applyTitleSearchResult({ title: r.title, genres: mappedGenres, type, episodes, durationMin, cover: coverValue });
+  const apiLink = r.source === 'jikan'
+    ? { source:'jikan', malId:r.malId }
+    : { source:'tmdb', tmdbId:r.tmdbId, tmdbMediaType:r.tmdbMediaType };
+
+  await applyTitleSearchResult({ title: r.title, genres: mappedGenres, type, episodes, durationMin, cover: coverValue, apiLink });
   closeTitleSearch();
 }
 window.selectTitleSearchResult = selectTitleSearchResult;
@@ -3140,6 +3151,7 @@ async function applyTitleSearchResult(data){
     pendingApiGenresSeries = data.genres;
     pendingApiEpisodesSeries = data.episodes || null;
     if(data.cover) covers[seriesKey(data.title)] = data.cover;
+    if(data.apiLink) seriesApiLink[seriesKey(data.title)] = { ...data.apiLink, lastChecked: Date.now() };
     render();
   } else {
     document.getElementById('mTitle').value = data.title;
@@ -3161,13 +3173,125 @@ document.getElementById('titleSearchInput').addEventListener('keydown', (e) => {
 document.getElementById('titleSearchModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'titleSearchModalOverlay') closeTitleSearch();
 });
+
+/*DESCUBRIR / TENDENCIAS (TMDB)*/
+let discoverContext = null; // 'series' | 'movie'
+let discoverResultsData = [];
+
+function openDiscoverModal(kind){
+  discoverContext = kind;
+  document.getElementById('discoverModalTitle').textContent = kind === 'movie' ? '🔥 Tendencias — Películas' : '🔥 Tendencias — Series';
+  document.getElementById('discoverResults').innerHTML = '';
+  document.getElementById('discoverStatus').textContent = '';
+  document.getElementById('discoverModalOverlay').style.display = 'flex';
+  runDiscoverFetch();
+}
+function closeDiscoverModal(){
+  document.getElementById('discoverModalOverlay').style.display = 'none';
+}
+window.openDiscoverModal = openDiscoverModal;
+
+async function runDiscoverFetch(){
+  const statusEl = document.getElementById('discoverStatus');
+  const resultsEl = document.getElementById('discoverResults');
+  resultsEl.innerHTML = '';
+  discoverResultsData = [];
+
+  if(!settings.tmdbApiKey){
+    statusEl.textContent = '⚠️ Necesitás configurar tu clave de TMDB primero (botón "🔎 Autocompletar (TMDB)" en la pantalla principal).';
+    return;
+  }
+
+  statusEl.textContent = 'Cargando tendencias de la semana...';
+  const endpoint = discoverContext === 'movie' ? 'movie' : 'tv';
+
+  try{
+    const res = await fetch(`https://api.themoviedb.org/3/trending/${endpoint}/week?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES`);
+    if(!res.ok) throw new Error('TMDB HTTP ' + res.status);
+    const data = await res.json();
+    const results = data.results || [];
+
+    // No repetir sugerencias de algo que ya está registrado o ya está en pendientes
+    const knownKeys = discoverContext === 'movie'
+      ? new Set([...movieEntries.map(e => seriesKey(e.title)), ...moviePending.map(p => seriesKey(p.title))])
+      : new Set([...entries.map(e => seriesKey(e.serie)), ...pending.map(p => seriesKey(p.serie))]);
+
+    const filtered = results.filter(item => {
+      const name = discoverContext === 'movie' ? item.title : item.name;
+      return name && !knownKeys.has(seriesKey(name));
+    });
+
+    if(!filtered.length){
+      statusEl.textContent = 'No hay novedades nuevas: ya tenés registrado o pendiente todo lo que está sonando esta semana.';
+      return;
+    }
+
+    discoverResultsData = filtered.map(item => {
+      const name = discoverContext === 'movie' ? item.title : item.name;
+      const dateStr = discoverContext === 'movie' ? item.release_date : item.first_air_date;
+      const year = dateStr ? dateStr.slice(0, 4) : '';
+      const rating = item.vote_average ? `⭐ ${item.vote_average.toFixed(1)}` : '';
+      return {
+        title: name,
+        subtitle: [year, rating].filter(Boolean).join(' · '),
+        imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w200${item.poster_path}` : null
+      };
+    });
+
+    statusEl.textContent = `Tendencia esta semana (${discoverResultsData.length}):`;
+    resultsEl.innerHTML = discoverResultsData.map((r, i) => `
+      <div class="title-search-result discover-result">
+        <div class="title-search-result-cover" style="${r.imageUrl ? `background-image:url('${r.imageUrl}')` : ''}">${r.imageUrl ? '' : '🎬'}</div>
+        <div class="title-search-result-info">
+          <div class="title-search-result-name">${escapeHtml(r.title)}</div>
+          <div class="title-search-result-sub">${escapeHtml(r.subtitle)}</div>
+        </div>
+        <button type="button" class="discover-add-btn" id="discoverAddBtn${i}" onclick="addDiscoverToPending(${i})" title="Agregar a pendientes">➕</button>
+      </div>`).join('');
+  }catch(err){
+    console.error('Error consultando tendencias de TMDB:', err);
+    statusEl.textContent = '⚠️ No se pudo consultar TMDB ahora mismo. Prueba de nuevo en un rato.';
+  }
+}
+
+async function addDiscoverToPending(idx){
+  const r = discoverResultsData[idx];
+  if(!r) return;
+  const btn = document.getElementById('discoverAddBtn' + idx);
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  if(discoverContext === 'movie'){
+    moviePending.push({ id, title: r.title, note: 'Descubierta en tendencias TMDB', addedAt: Date.now() });
+    renderMoviePending();
+  } else {
+    pending.push({ id, serie: r.title, note: 'Descubierta en tendencias TMDB', addedAt: Date.now() });
+    renderPending();
+  }
+  await saveAll();
+
+  if(btn){ btn.textContent = '✔'; btn.disabled = true; btn.title = 'Ya está en pendientes'; }
+
+  showUndoToast(`"${r.title}" agregada a pendientes.`, async () => {
+    if(discoverContext === 'movie'){ moviePending = moviePending.filter(p => p.id !== id); renderMoviePending(); }
+    else { pending = pending.filter(p => p.id !== id); renderPending(); }
+    await saveAll();
+    if(btn){ btn.textContent = '➕'; btn.disabled = false; btn.title = 'Agregar a pendientes'; }
+  });
+}
+window.addDiscoverToPending = addDiscoverToPending;
+
+document.getElementById('discoverModalClose').addEventListener('click', closeDiscoverModal);
+document.getElementById('discoverRefreshBtn').addEventListener('click', runDiscoverFetch);
+document.getElementById('discoverModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'discoverModalOverlay') closeDiscoverModal();
+});
 document.getElementById('durationModalClose').addEventListener('click', closeDurationSettings);
 document.getElementById('durationModalSave').addEventListener('click', saveDurationSettings);
 document.getElementById('durationModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'durationModalOverlay') closeDurationSettings();
 });
 
-/* ========================= GÉNERO / TIPO ========================= */
+/*GÉNERO / TIPO*/
 function populateGenreSelects(){
   const opts = '<option value="">Sin especificar</option>' + GENRES.map(g => `<option value="${g}">${g}</option>`).join('');
   ['fGenero','bGenero','mGenero'].forEach(id => {
@@ -3192,7 +3316,7 @@ function populateSagaList(){
 
 function getGenreList(name){ return genres[seriesKey(name)] || []; }
 
-/* ========================= DURACIÓN: default automático según tipo ========================= */
+/*DURACIÓN: default automático según tipo*/
 function defaultDurationFor(mediaKind, tipoVal){
   if(mediaKind === 'episode'){
     if(tipoVal === 'live') return settings.episodeLive;
@@ -3245,7 +3369,7 @@ function updateGlobalStats(){
   }
 }
 
-/* ========================= SERIES: covers ========================= */
+/*SERIES: portadas*/
 function resizeImageToDataUrl(file, maxSize, quality){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -3313,7 +3437,7 @@ document.getElementById('btnBulkCover').addEventListener('click', () => {
   openCoverPicker(serie);
 });
 
-/* ========================= MÚSICA DE CARPETA (compartido) ========================= */
+/*MÚSICA DE CARPETA (compartido)*/
 const MAX_AUDIO_BYTES = 6 * 1024 * 1024; // ~6MB, para no reventar localStorage
 
 function readFileAsDataUrl(file){
@@ -3388,7 +3512,7 @@ document.getElementById('audioFileInput').addEventListener('change', async (e) =
   pendingMusicSeries = null;
 });
 
-/* ========================= SERIES: status / expand ========================= */
+/*SERIES: status / expand*/
 const STATUS_LABELS = { curso: 'En curso', terminada: 'Terminada', rewatch: 'Repitiendo', abandonada: 'Abandonada' };
 const STATUS_ORDER = ['curso', 'terminada', 'rewatch', 'abandonada'];
 const ABANDON_DAYS = 30;
@@ -3401,10 +3525,44 @@ function lastEpisodeDateOf(name){
   return dated.length ? dated[dated.length - 1] : null;
 }
 
-// Si una serie "en curso" lleva más de ABANDON_DAYS sin recibir un registro nuevo, pasa a "abandonada"
-// sola. Si el usuario la vuelve a poner en curso manualmente, le damos otros ABANDON_DAYS de gracia
-// antes de volver a marcarla (usamos el más reciente entre la última fecha registrada y el último
-// cambio manual de estado como referencia de "última actividad").
+function distinctEpisodeCountOf(name){
+  const key = seriesKey(name);
+  const set = new Set();
+  entries.forEach(e => {
+    if(seriesKey(e.serie) === key) set.add(`${e.season ?? ''}|${e.episode ?? ''}`);
+  });
+  return set.size;
+}
+
+function autoCompleteFinishedSeries(){
+  const names = new Set(entries.map(e => e.serie.trim()));
+  const justCompleted = [];
+  names.forEach(name => {
+    const key = seriesKey(name);
+    if(getStatus(name) !== 'curso') return;
+    const goal = getSeriesGoal(name);
+    if(!goal) return;
+    if(distinctEpisodeCountOf(name) >= goal){
+      status[key] = 'terminada';
+      statusManualAt[key] = Date.now();
+      justCompleted.push(name);
+    }
+  });
+  return justCompleted;
+}
+
+function notifyAutoCompleted(names){
+  names.forEach(name => {
+    const key = seriesKey(name);
+    showUndoToast(`"${name}" llegó al 100% de su meta y pasó a Terminada.`, async () => {
+      status[key] = 'curso';
+      statusManualAt[key] = Date.now();
+      render();
+      await saveAll();
+    });
+  });
+}
+
 function autoUpdateAbandonedSeries(){
   const names = new Set(entries.map(e => e.serie.trim()));
   const todayMs = Date.now();
@@ -3435,10 +3593,107 @@ async function setSeriesGoal(name){
   const n = parseInt(input, 10);
   if(!n || n <= 0){ delete seriesGoals[key]; }
   else { seriesGoals[key] = n; }
+  notifyAutoCompleted(autoCompleteFinishedSeries());
   render();
   await saveAll();
 }
 window.setSeriesGoal = setSeriesGoal;
+
+/*META AUTOMÁTICA (Jikan/TMDB)*/
+// Consulta la fuente vinculada a la serie y devuelve el total de episodios más actual que conoce, o null.
+async function fetchLatestEpisodeTotal(link){
+  if(link.source === 'jikan' && link.malId){
+    const res = await fetch(`https://api.jikan.moe/v4/anime/${link.malId}`);
+    if(!res.ok) throw new Error('Jikan HTTP ' + res.status);
+    const data = await res.json();
+    const confirmedTotal = (data.data && data.data.episodes) || null;
+    if(confirmedTotal) return confirmedTotal; // ya terminó de emitirse: total definitivo
+
+    try{
+      const epRes = await fetch(`https://api.jikan.moe/v4/anime/${link.malId}/episodes`);
+      if(epRes.ok){
+        const epData = await epRes.json();
+        const listedCount = epData.pagination && epData.pagination.items && epData.pagination.items.total;
+        if(listedCount > 0) return listedCount;
+      }
+    }catch(err){ console.warn('No se pudo consultar episodios listados en Jikan:', err); }
+    return null;
+  }
+  if(link.source === 'tmdb' && link.tmdbId){
+    if(!settings.tmdbApiKey) throw new Error('sin clave TMDB');
+    const res = await fetch(`https://api.themoviedb.org/3/tv/${link.tmdbId}?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES`);
+    if(!res.ok) throw new Error('TMDB HTTP ' + res.status);
+    const detail = await res.json();
+
+    const lastAired = detail.last_episode_to_air;
+    if(lastAired && lastAired.season_number > 0){
+      const priorSeasons = (detail.seasons || []).filter(s => s.season_number > 0 && s.season_number < lastAired.season_number);
+      const priorEpisodes = priorSeasons.reduce((sum, s) => sum + (s.episode_count || 0), 0);
+      return priorEpisodes + (lastAired.episode_number || 0);
+    }
+    return detail.number_of_episodes || null;
+  }
+  return null;
+}
+
+async function refreshSeriesGoal(name){
+  const key = seriesKey(name);
+  const link = seriesApiLink[key];
+  if(!link){
+    await customAlert('Esta serie no está vinculada a Jikan/TMDB todavía. Buscala de nuevo desde "Registrar visionado" (🔍) y elegí el resultado correcto para vincularla — a partir de ahí su meta se puede actualizar sola.', { icon:'🔗', title:'Sin vínculo' });
+    return;
+  }
+  try{
+    const newTotal = await fetchLatestEpisodeTotal(link);
+    link.lastChecked = Date.now();
+    if(!newTotal){
+      await saveAll();
+      await customAlert('Todavía no hay un total confirmado — la serie sigue en emisión. Volvé a intentarlo cuando avance más.', { icon:'📡', title:'Sin novedades' });
+      return;
+    }
+    const current = getSeriesGoal(name);
+    if(newTotal === current){
+      await saveAll();
+      await customAlert(`La meta ya está al día: ${newTotal} capítulos.`, { icon:'✅', title:'Sin cambios' });
+      return;
+    }
+    seriesGoals[key] = newTotal;
+    notifyAutoCompleted(autoCompleteFinishedSeries());
+    render();
+    await saveAll();
+    await customAlert(`Meta actualizada: ahora son ${newTotal} capítulos en total.`, { icon:'🔄', title:'Meta actualizada' });
+  }catch(err){
+    console.error('Error actualizando meta desde la API:', err);
+    await customAlert('No se pudo consultar la fuente ahora mismo. Probá de nuevo en un rato.', { icon:'⚠️', title:'Error de red' });
+  }
+}
+window.refreshSeriesGoal = refreshSeriesGoal;
+
+async function autoRefreshLinkedSeriesGoals(){
+  const THROTTLE_MS = 20 * 60 * 60 * 1000;
+  const now = Date.now();
+  let changed = false;
+  for(const key of Object.keys(seriesApiLink)){
+    const link = seriesApiLink[key];
+    if((status[key] || 'curso') !== 'curso') continue;
+    if(link.lastChecked && (now - link.lastChecked) < THROTTLE_MS) continue;
+    try{
+      const newTotal = await fetchLatestEpisodeTotal(link);
+      link.lastChecked = now;
+      if(newTotal && newTotal !== seriesGoals[key]){
+        seriesGoals[key] = newTotal;
+        changed = true;
+      }
+    }catch(err){
+      console.warn('No se pudo auto-actualizar la meta de', key, err);
+    }
+  }
+  if(changed){
+    notifyAutoCompleted(autoCompleteFinishedSeries());
+    render();
+  }
+  await saveAll();
+}
 
 async function toggleStatus(name){
   const key = seriesKey(name);
@@ -3463,7 +3718,7 @@ function toggleExpand(name){
 }
 window.toggleExpand = toggleExpand;
 
-/* ========================= SERIES: CRUD ========================= */
+/*SERIES: CRUD*/
 function purgeOldTrash(){
   const cutoff = Date.now() - 15 * 86400000;
   const before = trash.length;
@@ -3517,6 +3772,7 @@ async function saveEdit(id){
   entry.rewatch = card.querySelector('.edit-rewatch').checked;
   entry.note = card.querySelector('.edit-note').value.trim();
   editingId = null;
+  notifyAutoCompleted(autoCompleteFinishedSeries());
   render();
   await saveAll();
 }
@@ -3564,7 +3820,7 @@ function renderContinueWatching(){
   }).join('');
 }
 
-/* ========================= MODO RÁPIDO: +1 episodio de un toque ========================= */
+/*MODO RÁPIDO: +1 episodio de un toque*/
 function todayIsoDate(){
   const now = new Date();
   return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
@@ -3643,7 +3899,7 @@ function jumpToSerie(name, nextSeason = '', nextEpisode = ''){
 }
 window.jumpToSerie = jumpToSerie;
 
-/* ========================= BÚSQUEDA GLOBAL (series + películas, desde cualquier pestaña) ========================= */
+/*BÚSQUEDA GLOBAL (series + películas, desde cualquier pestaña)*/
 let globalSearchMatches = [];
 
 function buildGlobalSearchIndex(){
@@ -3892,11 +4148,13 @@ function render(){
     const watchedSet = new Set(items.map(e => `${e.season ?? ''}|${e.episode ?? ''}`));
     const watchedCount = watchedSet.size;
     const pct = goal > 0 ? Math.min(100, Math.round((watchedCount / goal) * 100)) : 0;
+    const isLinked = !!seriesApiLink[seriesKey(serie)];
     const progressBarHtml = goal > 0 ? `
         <div class="progress-row">
           <div class="progress-track ${pct >= 100 ? 'complete' : ''}"><div class="progress-mask" style="width:${100 - pct}%"></div></div>
           <span class="progress-label">${watchedCount}/${goal} · ${pct}%</span>
           <button type="button" class="progress-goal-btn" onclick="setSeriesGoal(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Editar meta de capítulos">editar meta</button>
+          ${isLinked ? `<button type="button" class="progress-refresh-btn" onclick="refreshSeriesGoal(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Consultar ahora si hay un total nuevo (Jikan/TMDB)">🔄</button>` : ''}
         </div>` : '';
 
     return `
@@ -3943,7 +4201,7 @@ document.getElementById('fGenreFilter').addEventListener('change', render);
 document.getElementById('fTypeFilter').addEventListener('change', render);
 document.getElementById('fSortFilter').addEventListener('change', render);
 
-/* ========================= SERIES: main form ========================= */
+/*SERIES: formulario principal*/
 function setRating(v){
   currentRating = v;
   document.querySelectorAll('#starPicker button').forEach(btn => {
@@ -4006,10 +4264,11 @@ async function addEntry(){
     renderPending();
   }
 
+  // Si con este capítulo la serie llega al 100% de su meta, pasa sola de "en curso" a "terminada"
+  notifyAutoCompleted(autoCompleteFinishedSeries());
+
   render();
   await saveAll();
-
-  document.getElementById('fSerie').value = '';
   document.getElementById('fTemp').value = '';
   document.getElementById('fCap').value = '';
   document.getElementById('fNota').value = '';
@@ -4032,7 +4291,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* ========================= SERIES: bulk ========================= */
+/*SERIES: Carga rápida*/
 document.getElementById('btnGenerateBulk').addEventListener('click', () => {
   const bulkErr = document.getElementById('bulkErrMsg');
   const serie = document.getElementById('bSerie').value.trim();
@@ -4106,6 +4365,8 @@ document.getElementById('btnSaveBulk').addEventListener('click', async () => {
   if(bTipoVal) types[bKey] = bTipoVal;
   if(bDuracionVal > 0) seriesDuration[bKey] = bDuracionVal;
 
+  notifyAutoCompleted(autoCompleteFinishedSeries());
+
   render();
   await saveAll();
 
@@ -4124,7 +4385,7 @@ document.getElementById('btnSaveBulk').addEventListener('click', async () => {
   btn.disabled = false;
 });
 
-/* ========================= SERIES: pendientes ========================= */
+/*SERIES: pendientes*/
 function timeAgo(timestamp){
   if(!timestamp) return null;
   const diffMs = Date.now() - timestamp;
@@ -4199,7 +4460,7 @@ document.getElementById('btnAddPending').addEventListener('click', async () => {
   nameInput.focus();
 });
 
-/* ========================= MOVIES: covers ========================= */
+/*MOVIES: Portadas*/
 function openMovieCoverPicker(title){
   pendingCoverMovie = title;
   document.getElementById('movieCoverFileInput').click();
@@ -4245,7 +4506,7 @@ document.getElementById('btnMovieCover').addEventListener('click', () => {
   openMovieCoverPicker(title);
 });
 
-/* ========================= MOVIES: música de carpeta ========================= */
+/*MOVIES: música de carpeta*/
 function openMovieMusicPicker(name){
   pendingMusicMovie = name;
   document.getElementById('movieAudioFileInput').click();
@@ -4285,7 +4546,7 @@ document.getElementById('movieAudioFileInput').addEventListener('change', async 
   pendingMusicMovie = null;
 });
 
-/* ========================= MOVIES: expand / CRUD ========================= */
+/*MOVIES: expand / CRUD*/
 function toggleMovieExpand(name){
   const key = seriesKey(name);
   if(expandedMovies.has(key)){
@@ -4313,7 +4574,7 @@ async function deleteMovieEntry(id){
 }
 window.deleteMovieEntry = deleteMovieEntry;
 
-/* ========================= PAPELERA ========================= */
+/*PAPELERA*/
 function daysLeftInTrash(item){
   const expiresAt = item.deletedAt + 15 * 86400000;
   return Math.max(0, Math.ceil((expiresAt - Date.now()) / 86400000));
@@ -4546,7 +4807,6 @@ function renderMovies(){
     const music = movieFolderMusic[dispKey] || null;
     const isPlaying = currentAudioKey === 'movie:' + dispKey;
 
-    // Cabecera de género/tipo solo tiene sentido para una única película, no para una franquicia con varios títulos
     const groupGenre = isFranchise ? '' : getMovieGenre(displayName);
     const groupType = isFranchise ? '' : getMovieType(displayName);
 
@@ -4597,7 +4857,7 @@ document.getElementById('mGenreFilter').addEventListener('change', renderMovies)
 document.getElementById('mTypeFilter').addEventListener('change', renderMovies);
 document.getElementById('mSortFilter').addEventListener('change', renderMovies);
 
-/* ========================= MOVIES: main form ========================= */
+/*MOVIES: formulario principal*/
 function setMovieRating(v){
   currentMovieRating = v;
   document.querySelectorAll('#movieStarPicker button').forEach(btn => {
@@ -4670,7 +4930,7 @@ async function addMovieEntry(){
 }
 document.getElementById('btnAddMovie').addEventListener('click', addMovieEntry);
 
-/* ========================= MOVIES: pendientes ========================= */
+/*MOVIES: pendientes*/
 function renderMoviePending(){
   document.getElementById('moviePendingCount').textContent = moviePending.length;
   const wrap = document.getElementById('moviePendingList');
@@ -4733,11 +4993,11 @@ document.getElementById('btnAddMoviePending').addEventListener('click', async ()
   nameInput.focus();
 });
 
-/* ========================= RANKINGS ========================= */
+/*RANKINGS*/
 function ratingBadge(r){
   if(r >= 4) return '<span class="rating-badge good">👍 Bien</span>';
-  if(r === 3) return '<span class="rating-badge meh">😐 Meh</span>';
-  return '<span class="rating-badge bad">👎 Mal</span>';
+  if(r === 3) return '<span class="rating-badge meh">😐 Mediocre</span>';
+  return '<span class="rating-badge bad">👎 Meh</span>';
 }
 
 function rankingSeriesCard(e){
@@ -4815,7 +5075,7 @@ function renderRankings(){
 document.getElementById('rankSearch').addEventListener('input', renderRankings);
 document.getElementById('rankGenreFilter').addEventListener('change', renderRankings);
 
-/* ========================= MAPA DE ACTIVIDAD (heatmap) ========================= */
+/*MAPA DE ACTIVIDAD*/
 const WEEKDAY_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
 function activityDateMap(){
@@ -4884,10 +5144,6 @@ function renderActivity(){
   document.getElementById('activityPrevYear').disabled = activityYear <= minYear;
   document.getElementById('activityNextYear').disabled = activityYear >= maxYear;
 
-  // Cada mes es su propio bloque independiente (no una tira continua de semanas
-  // de domingo a sábado): arranca de nuevo en el día 1, con celdas vacías de relleno
-  // antes de ese día para respetar la fila del día de la semana correspondiente,
-  // y tiene exactamente la cantidad de días que le corresponde a ese mes.
   const CELL = 11, GAP = 3, MONTH_GAP = 12; // px
 
   const months = [];
@@ -4909,9 +5165,6 @@ function renderActivity(){
     months.push({ month: m, columns });
   }
 
-  // La etiqueta de cada mes vive DENTRO del mismo bloque que sus columnas de días
-  // (una encima de la otra, en una columna flex), así quedan siempre del mismo ancho
-  // sin tener que calcular píxeles a mano — eso es lo que se desalineaba antes.
   document.getElementById('activityGrid').innerHTML = months.map((mo, i) => `
     <div class="activity-month-block" style="${i > 0 ? `margin-left:${MONTH_GAP}px;` : ''}">
       <div class="activity-month-label">${MONTH_NAMES[mo.month].slice(0,3)}</div>
@@ -4965,7 +5218,7 @@ function renderGenreBreakdown(){
   }).join('');
 }
 
-/* ========================= LOGROS ========================= */
+/*LOGROS*/
 function maxDailyCount(){
   const counts = {};
   entries.forEach(e => { if(e.date) counts[e.date] = (counts[e.date] || 0) + 1; });
@@ -5138,12 +5391,9 @@ function renderAchievements(){
   }).join('');
 }
 
-/* ========================= LOGROS PERSONALIZADOS (Diamante) ========================= */
+/*LOGROS PERSONALIZADOS (Diamante)*/
 let pendingCaImage = null;
 
-// Precarga del formulario con el logro "Ahora eres un simbolista" (Shingeki al 100%)
-// que Miguel pidió crear, usando la imagen que subió. Solo hace falta confirmar el
-// nombre exacto de la serie (por si en su registro está escrita distinto) y tocar "Crear logro".
 const TATAKAE_ICON_DATAURL = "data:image/jpeg;base64,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";
 function seedSymbolistFormIfEmpty(){
   if(customAchievements.some(ca => ca.name === 'Ahora eres un simbolista')) return;
@@ -5318,7 +5568,7 @@ function renderActivityDetail(dateStr, items){
 document.getElementById('activityPrevYear').addEventListener('click', () => { activityYear--; activitySelectedDate = null; renderActivity(); });
 document.getElementById('activityNextYear').addEventListener('click', () => { activityYear++; activitySelectedDate = null; renderActivity(); });
 
-/* ========================= MODAL: editar género / tipo ========================= */
+/*MODAL: editar género / tipo*/
 let genreModalTarget = null; // { type:'series'|'movie', name: string }
 
 function openGenreModal(type, name){
@@ -5388,7 +5638,7 @@ document.getElementById('genreModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'genreModalOverlay') closeGenreModal();
 });
 
-/* ========================= FRANQUICIAS (solo películas) ========================= */
+/*FRANQUICIAS (solo películas)*/
 function getFranchiseKey(title){ return movieSagas[seriesKey(title)] || null; }
 function getFranchiseName(fKey){ return (franchises[fKey] && franchises[fKey].name) || fKey; }
 
@@ -5467,7 +5717,7 @@ document.getElementById('franchiseModalOverlay').addEventListener('click', (e) =
   if(e.target.id === 'franchiseModalOverlay') closeCreateFranchiseModal();
 });
 
-/* ========================= EDICIÓN EN BLOQUE ========================= */
+/*EDICIÓN EN BLOQUE*/
 let bulkEditMode = false;
 let bulkSelectedIds = new Set();
 let beRatingValue = 0;
@@ -5629,7 +5879,7 @@ document.getElementById('bulkEditApply').addEventListener('click', async () => {
   });
 });
 
-/* ========================= WRAPPED ========================= */
+/*WRAPPED*/
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 function formatMonthLabel(ym){
   const [y,m] = ym.split('-');
@@ -5658,7 +5908,6 @@ function getMusicPool(genreFilter){
 
 function pickRandomMusic(genreFilter){
   let pool = getMusicPool(genreFilter);
-  // Si no hay canciones de ese género específico, no forzamos una de otro género: se queda en silencio.
   if(!pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -5991,7 +6240,7 @@ function buildWrappedSlides(s, year){
   slides.push({
     icon:'✨', eyebrow:'Eso es todo',
     big:'¡Gracias por llevar tu bitácora!',
-    sub:'Seguí registrando para que el próximo Wrapped tenga todavía más data.',
+    sub:'Sigue registrando para que el próximo Wrapped tenga todavía más datos.',
     music:{ type:'random' },
     colorA:'#1b2129', colorB:'#0e1216'
   });
@@ -6039,7 +6288,7 @@ function openWrapped(year){
     wrappedSlides = [{
       icon:'📭', eyebrow:'Todavía nada por aquí',
       big:'Sin datos suficientes',
-      sub: year === 'all' ? 'Registra algunos capítulos o películas y volvé a intentarlo.' : `No hay registros con fecha en ${year}. Probá con otro año.`,
+      sub: year === 'all' ? 'Registra algunos capítulos o películas y volvé a intentarlo.' : `No hay registros con fecha en ${year}. Prueba con otro año.`,
       colorA:'#1b2129', colorB:'#0e1216'
     }];
   } else {
@@ -6055,7 +6304,7 @@ function closeWrapped(){
   playFolderMusic(null, null);
 }
 
-/* ========================= WRAPPED: exportar slide como PNG ========================= */
+/*WRAPPED: exportar slide como PNG*/
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight){
   const words = String(text || '').split(' ');
   let line = '';
@@ -6261,7 +6510,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* ========================= SELECCIÓN ALEATORIA ========================= */
+/*SELECCIÓN ALEATORIA*/
 let randomPick = null; // { name, isPending, pendingId }
 
 function computeSeriesPool(includePending){
@@ -6360,7 +6609,7 @@ document.getElementById('randomModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'randomModalOverlay') closeRandomModal();
 });
 
-/* ========================= INIT ========================= */
+/*INIT*/
 nowDefaults('f');
 nowDefaults('m');
 loadAll();
