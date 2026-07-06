@@ -1883,6 +1883,10 @@ let entries = [];        // episodios de series
 let status = {};         // { serieKeyLower: 'curso'|'terminada'|'rewatch'|'abandonada' }
 let statusManualAt = {}; // { serieKeyLower: timestamp del último cambio manual de estado }
 let trash = [];          // [{ id, kind:'series'|'movie', data:{...}, deletedAt: timestamp }]
+// Segunda red de seguridad (además de la corrección de la condición de carrera): un
+// registro de IDs borrados que jamás se resucita al fusionar con Drive, sin importar si
+// la "foto base" está desactualizada. Solo crece, nunca se le resta nada al fusionar.
+let deletedIds = {};     // { entryId: timestampDeBorrado }
 let customAchievements = []; // [{ id, name, desc, icon, image, condition:{type:'seriesComplete', seriesName} }]
 let covers = {};         // { serieKeyLower: dataURL }
 let pending = [];        // [{id, serie, note}]
@@ -2193,6 +2197,7 @@ async function loadAll(){
       status = parsed.status || {};
       statusManualAt = parsed.statusManualAt || {};
       trash = parsed.trash || [];
+      deletedIds = parsed.deletedIds || {};
       customAchievements = parsed.customAchievements || [];
       covers = parsed.covers || {};
       pending = parsed.pending || [];
@@ -2220,6 +2225,11 @@ async function loadAll(){
   } catch(e){
     console.error('Error al cargar datos:', e);
   }
+  // Red de seguridad: nunca dejar pasar un episodio/película cuyo ID ya esté marcado como borrado.
+  if(Object.keys(deletedIds).length){
+    entries = entries.filter(e => !deletedIds[e.id]);
+    movieEntries = movieEntries.filter(e => !deletedIds[e.id]);
+  }
   // Migración: los géneros ahora son arrays (antes eran un solo string)
   Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
   Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
@@ -2244,7 +2254,7 @@ async function loadAll(){
 async function saveAll(){
   try{
     const dataToSave = JSON.stringify({
-      entries, status, statusManualAt, trash, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+      entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
       movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings
     });
     localStorage.setItem(DATA_KEY, dataToSave);
@@ -2259,7 +2269,7 @@ async function saveAll(){
 /* ========================= BACKUP: exportar / restaurar todo ========================= */
 function collectAllData(){
   return {
-    entries, status, statusManualAt, trash, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
+    entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration,
     movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
@@ -2274,6 +2284,7 @@ function applyAllData(parsed){
   status = parsed.status || {};
   statusManualAt = parsed.statusManualAt || {};
   trash = parsed.trash || [];
+  deletedIds = parsed.deletedIds || {};
   customAchievements = parsed.customAchievements || [];
   covers = parsed.covers || {};
   pending = parsed.pending || [];
@@ -2293,6 +2304,13 @@ function applyAllData(parsed){
   movieFolderMusic = parsed.movieFolderMusic || {};
   movieDuration = parsed.movieDuration || {};
   settings = normalizeSettings(parsed.settings);
+
+  // Red de seguridad: nunca dejar pasar un episodio/película cuyo ID ya esté marcado
+  // como borrado, sin importar de dónde vengan estos datos (backup, Drive, etc).
+  if(Object.keys(deletedIds).length){
+    entries = entries.filter(e => !deletedIds[e.id]);
+    movieEntries = movieEntries.filter(e => !deletedIds[e.id]);
+  }
 
   Object.keys(genres).forEach(k => { if(!Array.isArray(genres[k])) genres[k] = genres[k] ? [genres[k]] : []; });
   Object.keys(movieGenres).forEach(k => { if(!Array.isArray(movieGenres[k])) movieGenres[k] = movieGenres[k] ? [movieGenres[k]] : []; });
@@ -2402,6 +2420,11 @@ let driveTokenExpiresAt = 0; // epoch ms
 let driveFileId = localStorage.getItem('driveFileId') || null;
 let driveSyncTimer = null;
 let driveApplyingRemote = false;
+// Evita que dos fusiones con Drive corran en simultáneo: si llega un cambio nuevo mientras
+// una fusión ya está en camino (esperando la red), se encola para correr de nuevo apenas
+// termine la actual, en vez de arrancar otra al mismo tiempo con datos que quedarían viejos.
+let driveMergeInProgress = false;
+let driveMergeQueued = false;
 let driveConflictPreferLocal = true; // desempate para ediciones al mismo registro desde ambos lados
 
 function driveSetStatus(mode, text){
@@ -2538,12 +2561,24 @@ const DRIVE_DICT_FIELDS = [
   'movieCovers', 'movieGenres', 'movieTypes', 'movieSagas', 'franchises', 'movieFolderMusic', 'movieDuration', 'settings'
 ];
 
+// deletedIds NUNCA usa la lógica genérica de "¿cambió respecto a la base?" porque eso
+// podría hacer que el propio registro de borrados se pierda si un dispositivo todavía no
+// se enteró de un borrado. La regla acá es a propósito unidireccional: una vez que un ID
+// entra a este registro (en cualquier dispositivo), se queda para siempre — solo se suma.
+function mergeDeletedIds(local, remote){
+  return Object.assign({}, remote || {}, local || {});
+}
+
 function mergeAllData(base, local, remote, preferLocalOnConflict){
   driveConflictPreferLocal = preferLocalOnConflict;
   base = base || {};
   const merged = {};
   DRIVE_ID_ARRAY_FIELDS.forEach(f => { merged[f] = mergeArraysById(base[f], local[f], remote[f]); });
   DRIVE_DICT_FIELDS.forEach(f => { merged[f] = mergeDicts(base[f], local[f], remote[f]); });
+  merged.deletedIds = mergeDeletedIds(local.deletedIds, remote.deletedIds);
+  // Última barrera, ya dentro del propio merge: ningún ID marcado como borrado sobrevive.
+  merged.entries = merged.entries.filter(e => !merged.deletedIds[e.id]);
+  merged.movieEntries = merged.movieEntries.filter(e => !merged.deletedIds[e.id]);
   return merged;
 }
 
@@ -2700,35 +2735,56 @@ async function driveUploadFile(content){
 
 async function driveMergeWithRemote(){
   if(!driveFileId) return;
-
-  const remoteData = await driveDownloadFile(driveFileId);
-  const base = driveGetBaseSnapshot();
-  const localData = collectAllData();
-
-  if(JSON.stringify(remoteData) === JSON.stringify(localData)){
-    driveSetBaseSnapshot(localData);
-    localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
-    driveSetStatus('connected', 'Google Drive: ya estaba al día');
+  if(driveMergeInProgress){
+    // Ya hay una fusión en camino: no arrancamos otra en paralelo (eso es justo lo que
+    // causaba que un borrado hecho a mitad de camino se perdiera). La encolamos.
+    driveMergeQueued = true;
     return;
   }
 
-  const lastLocalChange = localStorage.getItem('lastLocalChangeIso');
-  const remoteMeta = await driveFindFile();
-  const remoteModified = remoteMeta ? remoteMeta.modifiedTime : null;
-  const preferLocal = !remoteModified || (lastLocalChange && new Date(lastLocalChange) > new Date(remoteModified));
+  driveMergeInProgress = true;
+  try{
+    do{
+      driveMergeQueued = false;
 
-  const merged = mergeAllData(base, localData, remoteData, preferLocal);
+      const remoteData = await driveDownloadFile(driveFileId);
+      const base = driveGetBaseSnapshot();
 
-  driveApplyingRemote = true;
-  applyAllData(merged);
-  driveApplyingRemote = false;
+      // Sacamos una foto de "por si ya está todo igual" para evitar trabajo de más,
+      // pero la que realmente se usa para fusionar se vuelve a tomar más abajo, FRESCA,
+      // justo antes de aplicar el resultado — para no pisar cambios hechos mientras
+      // esperábamos la respuesta de Drive.
+      if(JSON.stringify(remoteData) === JSON.stringify(collectAllData())){
+        driveSetBaseSnapshot(collectAllData());
+        localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+        driveSetStatus('connected', 'Google Drive: ya estaba al día');
+        continue;
+      }
 
-  const finalData = collectAllData();
-  localStorage.setItem(DATA_KEY, JSON.stringify(finalData));
-  await driveUploadFile(finalData);
-  driveSetBaseSnapshot(finalData);
-  localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
-  driveSetStatus('connected', 'Google Drive: cambios combinados de ambos dispositivos ✓');
+      const lastLocalChange = localStorage.getItem('lastLocalChangeIso');
+      const remoteMeta = await driveFindFile();
+      const remoteModified = remoteMeta ? remoteMeta.modifiedTime : null;
+      const preferLocal = !remoteModified || (lastLocalChange && new Date(lastLocalChange) > new Date(remoteModified));
+
+      // A partir de aquí todo es síncrono (sin await) hasta terminar de aplicar el
+      // resultado, así ninguna otra edición del usuario puede meterse en el medio.
+      const freshLocalData = collectAllData();
+      const merged = mergeAllData(base, freshLocalData, remoteData, preferLocal);
+
+      driveApplyingRemote = true;
+      applyAllData(merged);
+      driveApplyingRemote = false;
+
+      const finalData = collectAllData();
+      localStorage.setItem(DATA_KEY, JSON.stringify(finalData));
+      await driveUploadFile(finalData);
+      driveSetBaseSnapshot(finalData);
+      localStorage.setItem('driveLastSyncedIso', new Date().toISOString());
+      driveSetStatus('connected', 'Google Drive: cambios combinados de ambos dispositivos ✓');
+    } while(driveMergeQueued);
+  } finally {
+    driveMergeInProgress = false;
+  }
 }
 
 async function driveSyncOnConnect(){
@@ -3420,6 +3476,7 @@ async function undoDelete(kind, originalId){
   if(idx === -1) return;
   const item = trash[idx];
   trash.splice(idx, 1);
+  delete deletedIds[originalId];
   if(kind === 'series'){ entries.push(item.data); render(); }
   else { movieEntries.push(item.data); renderMovies(); }
   renderTrash();
@@ -3432,6 +3489,7 @@ async function deleteEntry(id){
   const removed = entries[idx];
   entries.splice(idx, 1);
   trash.push({ id: 'tr' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), kind:'series', data: removed, deletedAt: Date.now() });
+  deletedIds[removed.id] = Date.now();
   render();
   renderTrash();
   await saveAll();
@@ -4247,6 +4305,7 @@ async function deleteMovieEntry(id){
   const removed = movieEntries[idx];
   movieEntries.splice(idx, 1);
   trash.push({ id: 'tr' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), kind:'movie', data: removed, deletedAt: Date.now() });
+  deletedIds[removed.id] = Date.now();
   renderMovies();
   renderTrash();
   await saveAll();
@@ -4295,6 +4354,7 @@ async function restoreTrashItem(trashId){
   if(idx === -1) return;
   const item = trash[idx];
   trash.splice(idx, 1);
+  delete deletedIds[item.data.id];
   if(item.kind === 'series'){ entries.push(item.data); render(); }
   else { movieEntries.push(item.data); renderMovies(); }
   renderTrash();
