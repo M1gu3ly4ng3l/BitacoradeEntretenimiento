@@ -45,6 +45,7 @@ body{
   padding:28px 20px 60px;
 }
 
+/* ---------- Header : deck faceplate ---------- */
 .deck{
   background:linear-gradient(180deg,#181e25,#12161b);
   border:1px solid var(--line);
@@ -245,6 +246,7 @@ body{
 .genre-check-pill input{ accent-color:var(--rewatch); cursor:pointer; }
 .genre-check-pill.checked{ border-color:var(--rewatch); color:var(--text); background:rgba(167,139,250,0.08); }
 
+/* ---------- Tabs ---------- */
 .tab-bar-spacer{ display:none; }
 .tab-bar{
   display:flex; gap:8px;
@@ -337,7 +339,7 @@ body{
 .streak-banner.zero{ border-color:var(--line); }
 .streak-banner.zero .streak-fire{ filter:none; opacity:0.4; }
 
-/* ---------- Mapa de actividad ---------- */
+/* ---------- Mapa de actividad (heatmap) ---------- */
 .activity-header{
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:14px; flex-wrap:wrap; gap:10px;
@@ -435,11 +437,13 @@ body{
 .random-modal-actions .btn-secondary{ flex:1; }
 .random-modal-actions .btn-record{ flex:1; margin-top:0; }
 
+/* ---------- Diálogo genérico (alert/confirm/prompt) ---------- */
 #dialogTitle{ margin-bottom:8px; }
 #dialogMessage{ margin-bottom:2px; }
 #dialogInputWrap{ margin-top:14px; }
 #dialogInputWrap input{ text-align:center; }
 
+/* ---------- Form panel ---------- */
 .panel{
   background:var(--bg-panel);
   border:1px solid var(--line);
@@ -989,6 +993,22 @@ body{
 }
 .cw-name{ font-family:'Oswald', sans-serif; font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cw-last{ font-size:10.5px; color:var(--text-dim); margin-top:3px; }
+.cw-quick-btn{
+  width:100%; margin-top:8px; padding:7px 6px; border-radius:7px;
+  border:1px solid var(--tape); background:rgba(74,222,128,0.1); color:var(--tape);
+  font-family:'JetBrains Mono', monospace; font-size:10.5px; font-weight:700; letter-spacing:0.3px;
+  cursor:pointer;
+}
+.cw-quick-btn:hover{ background:rgba(74,222,128,0.2); }
+.cw-quick-btn:active{ transform:scale(0.98); }
+.quick-log-btn{
+  display:block; width:100%; margin-bottom:10px; padding:9px 10px; border-radius:8px;
+  border:1px solid var(--tape); background:rgba(74,222,128,0.08); color:var(--tape);
+  font-family:'JetBrains Mono', monospace; font-size:11.5px; font-weight:700; letter-spacing:0.4px;
+  cursor:pointer; text-align:center;
+}
+.quick-log-btn:hover{ background:rgba(74,222,128,0.18); }
+.quick-log-btn:active{ transform:scale(0.99); }
 .cw-empty{ font-size:12px; color:var(--text-dim); font-style:italic; }
 
 /* ---------- Antigüedad pendientes ---------- */
@@ -2067,7 +2087,25 @@ function maskDateInput(el){
   el.value = out;
 }
 window.maskDateInput = maskDateInput;
-function sortKeyOf(e){ return `${e.date || ''}T${e.time || '00:00'}`; }
+function idToTimestamp(id){
+  // Los ids se generan como Date.now().toString(36) + 5 caracteres random (ver addEntry/addMovieEntry).
+  // Los agregados en bloque además llevan un sufijo "-N" con el número de episodio: lo quitamos primero.
+  if(!id) return 0;
+  const mainPart = String(id).split('-')[0];
+  const base36Part = mainPart.slice(0, -5);
+  const ts = parseInt(base36Part, 36);
+  return isNaN(ts) ? 0 : ts;
+}
+function sortKeyOf(e){
+  // Si tiene fecha, usamos la fecha/hora "de ficción" que puso el usuario (cuándo lo vio).
+  if(e.date){
+    const t = new Date(`${e.date}T${e.time || '00:00'}:00`).getTime();
+    if(!isNaN(t)) return t;
+  }
+  // Sin fecha: NO debe ganarle a los registros que sí tienen fecha por accidente de comparación de texto.
+  // Usamos el momento real en que se guardó el registro (embebido en el id) como respaldo razonable.
+  return idToTimestamp(e.id);
+}
 function avgRatingOf(items){
   const rated = items.filter(e => e.rating > 0);
   if(!rated.length) return 0;
@@ -3144,7 +3182,7 @@ function updateGlobalStats(){
 
   const allDated = [...entries, ...movieEntries].filter(e => e.date);
   if(allDated.length){
-    allDated.sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+    allDated.sort((a,b) => sortKeyOf(b) - sortKeyOf(a));
     document.getElementById('statLast').textContent = fmtDate(allDated[0].date, allDated[0].time);
   } else {
     document.getElementById('statLast').textContent = '—';
@@ -3444,7 +3482,7 @@ function renderContinueWatching(){
     const k = seriesKey(name);
     if(!latestByKey[k] || sortKeyOf(e) > sortKeyOf(latestByKey[k])) latestByKey[k] = e;
   });
-  const items = Object.values(latestByKey).sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  const items = Object.values(latestByKey).sort((a,b) => sortKeyOf(b) - sortKeyOf(a));
   if(!items.length){ panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   list.innerHTML = items.map(e => {
@@ -3463,9 +3501,71 @@ function renderContinueWatching(){
         <div class="cw-cover" style="${cover ? `background-image:url('${cover}')` : ''}">${cover ? '' : '📺'}</div>
         <div class="cw-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
         <div class="cw-last">Último: ${tag || '—'}${e.date ? ' · ' + fmtDate(e.date) : ''}</div>
+        <button type="button" class="cw-quick-btn" onclick="event.stopPropagation(); quickLogNextEpisode(decodeURIComponent('${encodeURIComponent(name)}'))" title="Registrar el siguiente episodio ahora mismo, sin abrir el formulario">▶ +1 episodio ahora</button>
       </div>`;
   }).join('');
 }
+
+/* ========================= MODO RÁPIDO: +1 episodio de un toque ========================= */
+function todayIsoDate(){
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+}
+function nowTimeStr(){
+  const now = new Date();
+  return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+function getLatestEntryForSeries(name){
+  const key = seriesKey(name);
+  let latest = null;
+  entries.forEach(e => {
+    if(seriesKey(e.serie) !== key) return;
+    if(!latest || sortKeyOf(e) > sortKeyOf(latest)) latest = e;
+  });
+  return latest;
+}
+function computeNextEpisodeFrom(latest){
+  if(!latest) return { season:'', episode:'' };
+  const season = (latest.season !== '' && latest.season != null) ? latest.season : '';
+  const episode = (latest.episode !== '' && latest.episode != null && !isNaN(parseInt(latest.episode, 10)))
+    ? parseInt(latest.episode, 10) + 1
+    : '';
+  return { season, episode };
+}
+async function quickLogNextEpisode(name){
+  const latest = getLatestEntryForSeries(name);
+  const { season, episode } = computeNextEpisodeFrom(latest);
+  const newEntry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    serie: name,
+    season, episode,
+    date: todayIsoDate(),
+    time: nowTimeStr(),
+    rating: 0,
+    rewatch: false,
+    note: ''
+  };
+  entries.push(newEntry);
+
+  const key = seriesKey(name);
+  const hadPending = pending.some(p => seriesKey(p.serie) === key);
+  if(hadPending){
+    pending = pending.filter(p => seriesKey(p.serie) !== key);
+    renderPending();
+  }
+
+  render();
+  await saveAll();
+
+  const tag = episode !== '' ? `E${pad(episode)}` : '';
+  showUndoToast(`+1 registrado: "${name}"${tag ? ' ' + tag : ''}`, async () => {
+    const idx = entries.findIndex(e => e.id === newEntry.id);
+    if(idx !== -1) entries.splice(idx, 1);
+    render();
+    await saveAll();
+  });
+}
+window.quickLogNextEpisode = quickLogNextEpisode;
 
 function jumpToSerie(name, nextSeason = '', nextEpisode = ''){
   switchSeriesSub('log');
@@ -3627,7 +3727,7 @@ function render(){
   const genreFilter = document.getElementById('fGenreFilter').value;
   const typeFilter = document.getElementById('fTypeFilter').value;
 
-  const sortedAll = [...entries].sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  const sortedAll = [...entries].sort((a,b) => sortKeyOf(b) - sortKeyOf(a));
   let filtered = sortedAll.filter(e => {
     if(search && !e.serie.toLowerCase().includes(search)) return false;
     if(statusFilter !== 'todas' && getStatus(e.serie) !== statusFilter) return false;
@@ -3769,7 +3869,10 @@ function render(){
           </div>
         </div>
         ${progressBarHtml}
-        <div class="entries-collapse ${isOpen ? 'open' : ''}">${cards}</div>
+        <div class="entries-collapse ${isOpen ? 'open' : ''}">
+          ${st === 'curso' ? `<button type="button" class="quick-log-btn" onclick="event.stopPropagation(); quickLogNextEpisode(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Registrar el siguiente episodio ahora mismo">▶ +1 episodio ahora</button>` : ''}
+          ${cards}
+        </div>
       </div>`;
   }).join('');
 
@@ -4296,7 +4399,7 @@ function renderMovies(){
   const genreFilter = document.getElementById('mGenreFilter').value;
   const typeFilter = document.getElementById('mTypeFilter').value;
 
-  const sortedAll = [...movieEntries].sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  const sortedAll = [...movieEntries].sort((a,b) => sortKeyOf(b) - sortKeyOf(a));
   const filtered = sortedAll.filter(e => {
     if(search && !e.title.toLowerCase().includes(search)) return false;
     if(genreFilter !== 'todos' && !getMovieGenreList(e.title).includes(genreFilter)) return false;
@@ -4324,7 +4427,7 @@ function renderMovies(){
   container.innerHTML = order.map(groupKey => {
     const group = groups[groupKey];
     const { isFranchise, franchiseKey, displayName } = group;
-    const items = group.items.sort((a,b) => sortKeyOf(a).localeCompare(sortKeyOf(b)));
+    const items = group.items.sort((a,b) => sortKeyOf(a) - sortKeyOf(b));
     const dispKey = seriesKey(displayName);
     const isOpen = expandedMovies.has(dispKey);
     const cover = movieCovers[dispKey] || null;
@@ -4625,7 +4728,7 @@ function renderRankingGroup(items, bestId, worstId, cardFn, label){
     worstEl.innerHTML = '';
     return;
   }
-  const recent = [...items].sort((a,b) => sortKeyOf(b).localeCompare(sortKeyOf(a)));
+  const recent = [...items].sort((a,b) => sortKeyOf(b) - sortKeyOf(a));
   const best = [...recent].sort((a,b) => b.rating - a.rating).slice(0, 10);
   const worst = [...recent].sort((a,b) => a.rating - b.rating).slice(0, 10);
   bestEl.innerHTML = best.map(cardFn).join('');
