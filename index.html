@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bitácora de Series y Películas</title>
 
+<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0e1216">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2351,27 +2352,66 @@ function driveSetStatus(mode, text){
    lo que hay en este dispositivo (local) y lo que hay en Drive (remoto). Así:
    - Lo agregado en un solo lado (celular o PC) se conserva siempre, sin importar quién sincronizó primero.
    - Lo borrado en un lado se respeta (no se "resucita") siempre que el otro lado no lo haya modificado después.
-   - Solo si el MISMO registro fue editado distinto en ambos lados se usa un desempate (gana el que cambió más recientemente). */
+   - Solo si el MISMO registro fue editado distinto en ambos lados se usa un desempate (gana el que cambió más recientemente).
+
+   IMPORTANTE: la "base" NO guarda una copia completa de los datos (eso incluía los audios en base64 de
+   folderMusic/movieFolderMusic, que pueden pesar varios MB y hacían fallar el localStorage.setItem en silencio,
+   dejando la base vacía/corrupta — y una base vacía hace que CUALQUIER borrado se interprete como "es nuevo,
+   lo traigo de vuelta"). En vez de eso, guardamos solo un "recibo" liviano: los IDs de cada lista y un hash
+   corto por cada valor de los diccionarios. Alcanza para saber qué existía antes, sin duplicar los datos pesados. */
+const DRIVE_BASE_SNAPSHOT_VERSION = 2;
+
+function cheapHash(str){
+  // Hash no criptográfico (FNV-1a 32 bits) — solo para detectar cambios, no para seguridad
+  let h = 0x811c9dc5;
+  for(let i = 0; i < str.length; i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+function buildLightweightSnapshot(fullData){
+  const snap = { __v: DRIVE_BASE_SNAPSHOT_VERSION };
+  DRIVE_ID_ARRAY_FIELDS.forEach(f => {
+    snap[f] = (fullData[f] || []).map(item => item.id);
+  });
+  DRIVE_DICT_FIELDS.forEach(f => {
+    const dict = fullData[f] || {};
+    const hashed = {};
+    Object.keys(dict).forEach(k => { hashed[k] = cheapHash(JSON.stringify(dict[k])); });
+    snap[f] = hashed;
+  });
+  return snap;
+}
+
 function driveGetBaseSnapshot(){
   try{
     const raw = localStorage.getItem('driveBaseSnapshot');
-    return raw ? JSON.parse(raw) : null;
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed || parsed.__v !== DRIVE_BASE_SNAPSHOT_VERSION) return null; // formato viejo/desconocido: tratar como "sin base"
+    return parsed;
   }catch(e){ return null; }
 }
-function driveSetBaseSnapshot(data){
-  try{ localStorage.setItem('driveBaseSnapshot', JSON.stringify(data)); }catch(e){ /* no-op */ }
+function driveSetBaseSnapshot(fullData){
+  try{
+    localStorage.setItem('driveBaseSnapshot', JSON.stringify(buildLightweightSnapshot(fullData)));
+  }catch(e){
+    console.error('No se pudo guardar la foto base de sincronización (esto puede hacer que un próximo borrado no se respete):', e);
+  }
 }
 
-function mergeArraysById(baseArr, localArr, remoteArr){
-  baseArr = baseArr || []; localArr = localArr || []; remoteArr = remoteArr || [];
-  const baseMap = new Map(baseArr.map(i => [i.id, i]));
+function mergeArraysById(baseIds, localArr, remoteArr){
+  const baseIdSet = new Set(baseIds || []);
+  localArr = localArr || []; remoteArr = remoteArr || [];
   const localMap = new Map(localArr.map(i => [i.id, i]));
   const remoteMap = new Map(remoteArr.map(i => [i.id, i]));
   const allIds = new Set([...localMap.keys(), ...remoteMap.keys()]);
   const result = [];
 
   allIds.forEach(id => {
-    const inBase = baseMap.has(id);
+    const inBase = baseIdSet.has(id);
     const inLocal = localMap.has(id);
     const inRemote = remoteMap.has(id);
 
@@ -2393,32 +2433,35 @@ function mergeArraysById(baseArr, localArr, remoteArr){
   return result;
 }
 
-function mergeDicts(baseDict, localDict, remoteDict){
-  baseDict = baseDict || {}; localDict = localDict || {}; remoteDict = remoteDict || {};
+function mergeDicts(baseHashes, localDict, remoteDict){
+  baseHashes = baseHashes || {}; localDict = localDict || {}; remoteDict = remoteDict || {};
   const allKeys = new Set([...Object.keys(localDict), ...Object.keys(remoteDict)]);
   const result = {};
 
   allKeys.forEach(key => {
-    const inBase = Object.prototype.hasOwnProperty.call(baseDict, key);
-    const localVal = localDict[key], remoteVal = remoteDict[key], baseVal = baseDict[key];
     const inLocal = Object.prototype.hasOwnProperty.call(localDict, key);
     const inRemote = Object.prototype.hasOwnProperty.call(remoteDict, key);
+    const localVal = localDict[key], remoteVal = remoteDict[key];
+    const localHash = inLocal ? cheapHash(JSON.stringify(localVal)) : null;
+    const remoteHash = inRemote ? cheapHash(JSON.stringify(remoteVal)) : null;
+    const inBase = Object.prototype.hasOwnProperty.call(baseHashes, key);
+    const baseHash = baseHashes[key];
 
     if(inLocal && inRemote){
-      if(JSON.stringify(localVal) === JSON.stringify(remoteVal)){
+      if(localHash === remoteHash){
         result[key] = localVal;
-      } else if(inBase && JSON.stringify(baseVal) === JSON.stringify(localVal)){
+      } else if(inBase && baseHash === localHash){
         result[key] = remoteVal; // solo cambió en remoto
-      } else if(inBase && JSON.stringify(baseVal) === JSON.stringify(remoteVal)){
+      } else if(inBase && baseHash === remoteHash){
         result[key] = localVal; // solo cambió en local
       } else {
         result[key] = driveConflictPreferLocal ? localVal : remoteVal; // cambió distinto en ambos: desempate
       }
     } else if(inLocal && !inRemote){
-      if(inBase && JSON.stringify(baseVal) === JSON.stringify(localVal)) return; // remoto lo borró, local no lo tocó
+      if(inBase && baseHash === localHash) return; // remoto lo borró, local no lo tocó
       result[key] = localVal;
     } else if(inRemote && !inLocal){
-      if(inBase && JSON.stringify(baseVal) === JSON.stringify(remoteVal)) return; // local lo borró, remoto no lo tocó
+      if(inBase && baseHash === remoteHash) return; // local lo borró, remoto no lo tocó
       result[key] = remoteVal;
     }
   });
