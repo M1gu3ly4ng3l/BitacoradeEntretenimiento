@@ -348,11 +348,9 @@ body{
 
 /*Búsqueda global*/
 #globalSearchFab{
-  position:fixed; right:20px; bottom:24px; z-index:520;
-  width:52px; height:52px; border-radius:50%;
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
   background:linear-gradient(135deg, var(--tape), #2fae63);
-  border:none; color:#0e1216; font-size:20px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.4);
+  border:none; color:#0e1216; font-size:15px;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
 }
 #globalSearchFab:hover{ filter:brightness(1.08); }
@@ -379,10 +377,6 @@ body{
   .tab-icon{ margin-right:0; font-size:18px; line-height:1; }
   .tab-label{ line-height:1; }
   .toast-container{ bottom:calc(72px + env(safe-area-inset-bottom)); }
-  #globalSearchFab{
-    bottom:calc(64px + env(safe-area-inset-bottom) + 16px); right:16px;
-    width:48px; height:48px; font-size:18px;
-  }
   .toolbar{
     display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:stretch;
   }
@@ -1228,6 +1222,7 @@ body{
     <div class="deck-top">
       <div class="deck-title">Bitácora</div>
       <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" id="globalSearchFab" title="Buscar en toda la bitácora" aria-label="Buscar en series y películas">🔍</button>
         <button class="profile-btn" id="btnOpenProfiles" title="Cambiar de perfil"></button>
         <div class="rec-indicator"><span class="rec-dot"></span>REC</div>
       </div>
@@ -1861,8 +1856,6 @@ body{
       <button class="btn-record" id="trashEmptyAll" style="margin-top:14px; background:var(--rec);">🗑️ Vaciar papelera</button>
     </div>
   </div>
-
-  <button type="button" id="globalSearchFab" title="Buscar en toda la bitácora" aria-label="Buscar en series y películas">🔍</button>
 
   <div class="modal-overlay" id="globalSearchModalOverlay" style="display:none;">
     <div class="modal-card" style="max-width:420px;">
