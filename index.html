@@ -4170,29 +4170,55 @@ async function fetchNextEpisodeInfo(link){
   return null;
 }
 
-async function ensureFranchiseTmdbCollection(fKey){
+// Una franquicia "grande" (ej. UCM) casi nunca es UNA sola colección de TMDB: TMDB las separa
+// en varias más chicas ("Captain America Collection", "Spider-Man Collection", "Avengers
+// Collection", etc). Por eso guardamos un ARRAY de colecciones por franquicia, y se va
+// completando de a una a medida que registrás películas de distintas sub-sagas.
+function getFranchiseCollectionIds(fKey){
   const f = franchises[fKey];
-  if(!f || !settings.tmdbApiKey) return null;
-  if(f.tmdbCollectionId) return f.tmdbCollectionId;
+  if(!f) return [];
+  if(Array.isArray(f.tmdbCollectionIds)) return f.tmdbCollectionIds;
+  // Migración desde el formato viejo (un solo id)
+  if(f.tmdbCollectionId){
+    f.tmdbCollectionIds = [f.tmdbCollectionId];
+    delete f.tmdbCollectionId;
+    return f.tmdbCollectionIds;
+  }
+  return [];
+}
+function addFranchiseCollectionId(fKey, collectionId){
+  if(!collectionId) return;
+  const f = franchises[fKey];
+  if(!f) return;
+  const ids = getFranchiseCollectionIds(fKey);
+  if(!ids.includes(collectionId)) ids.push(collectionId);
+  f.tmdbCollectionIds = ids;
+}
+
+async function ensureFranchiseTmdbCollections(fKey){
+  const f = franchises[fKey];
+  if(!f || !settings.tmdbApiKey) return [];
+  const existing = getFranchiseCollectionIds(fKey);
+  if(existing.length) return existing;
+  // Respaldo: si la franquicia nunca se vinculó registrando una película por TMDB, intentamos
+  // adivinar buscando una colección por el nombre que le pusiste (funciona mejor con nombres
+  // que coincidan con el nombre real de la colección en TMDB, no con abreviaturas como "UCM").
   try{
     const res = await fetch(`https://api.themoviedb.org/3/search/collection?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES&query=${encodeURIComponent(f.name)}`);
-    if(!res.ok) return null;
+    if(!res.ok) return [];
     const data = await res.json();
     const top = data.results && data.results[0];
     if(top){
-      f.tmdbCollectionId = top.id;
-      return top.id;
+      addFranchiseCollectionId(fKey, top.id);
+      return getFranchiseCollectionIds(fKey);
     }
   }catch(err){ console.warn('No se pudo buscar la colección de TMDB para', f.name, err); }
-  return null;
+  return [];
 }
 
 async function fetchFranchiseUpcoming(fKey){
-  const collectionId = await ensureFranchiseTmdbCollection(fKey);
-  if(!collectionId) return null;
-  const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES`);
-  if(!res.ok) return null;
-  const data = await res.json();
+  const collectionIds = await ensureFranchiseTmdbCollections(fKey);
+  if(!collectionIds.length) return null;
   const today = todayIsoDate();
   // Excluimos tanto lo etiquetado a esta franquicia como cualquier título ya registrado en general
   // (por si se agregó sin marcarlo como parte de la franquicia).
@@ -4201,12 +4227,22 @@ async function fetchFranchiseUpcoming(fKey){
     ...movieEntries.map(e => seriesKey(e.title))
   ]);
 
-  const upcoming = (data.parts || [])
-    .filter(p => p.release_date && p.release_date >= today)
-    .filter(p => !registeredTitleKeys.has(seriesKey(p.title)))
-    .sort((a, b) => a.release_date.localeCompare(b.release_date));
+  const allUpcoming = [];
+  for(const collectionId of collectionIds){
+    try{
+      const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES`);
+      if(!res.ok) continue;
+      const data = await res.json();
+      (data.parts || []).forEach(p => {
+        if(p.release_date && p.release_date >= today && !registeredTitleKeys.has(seriesKey(p.title))){
+          allUpcoming.push(p);
+        }
+      });
+    }catch(err){ console.warn('No se pudo revisar la colección', collectionId, 'de', fKey, err); }
+  }
 
-  return upcoming[0] || null;
+  allUpcoming.sort((a, b) => a.release_date.localeCompare(b.release_date));
+  return allUpcoming[0] || null;
 }
 
 function renderUpcomingPanel(){
@@ -5566,11 +5602,11 @@ async function addMovieEntry(){
   if(mTipoVal) movieTypes[mKey] = mTipoVal;
   if(mDuracionVal > 0) movieDuration[mKey] = mDuracionVal;
   if(mFranquiciaVal && mFranquiciaVal !== '__new__' && franchises[mFranquiciaVal]) movieSagas[mKey] = mFranquiciaVal;
-  // Si la película se vinculó por búsqueda de TMDB y pertenece a una colección, la guardamos en
-  // la franquicia asignada — es mucho más confiable que buscar la colección por el nombre corto
-  // que le puso el usuario a la franquicia (ej. "UCM" no matchea "Marvel Cinematic Universe").
+  // Si la película se vinculó por búsqueda de TMDB y pertenece a una colección, la sumamos a la
+  // franquicia asignada (una franquicia grande como "UCM" en TMDB en realidad son varias
+  // colecciones separadas por sub-saga, así que vamos acumulando cada una que aparezca).
   if(mFranquiciaVal && franchises[mFranquiciaVal] && pendingApiCollectionId){
-    franchises[mFranquiciaVal].tmdbCollectionId = pendingApiCollectionId;
+    addFranchiseCollectionId(mFranquiciaVal, pendingApiCollectionId);
   }
   // Géneros traídos de TMDB/Jikan (si se buscó el título antes de registrar)
   if(pendingApiGenresMovie && pendingApiGenresMovie.length){
