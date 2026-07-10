@@ -2512,6 +2512,8 @@ async function loadAll(){
 
   // Red de seguridad: nunca dejar pasar un episodio/película cuyo ID ya esté marcado como borrado.
   if(Object.keys(deletedIds).length){
+    entries.filter(e => deletedIds[e.id]).forEach(e => console.warn('[deletedIds-filter] entries: se descarta id=' + e.id, e));
+    movieEntries.filter(e => deletedIds[e.id]).forEach(e => console.warn('[deletedIds-filter] movieEntries: se descarta id=' + e.id, e));
     entries = entries.filter(e => !deletedIds[e.id]);
     movieEntries = movieEntries.filter(e => !deletedIds[e.id]);
   }
@@ -2606,6 +2608,8 @@ async function applyAllData(parsed){
   // Red de seguridad: nunca dejar pasar un episodio/película cuyo ID ya esté marcado
   // como borrado, sin importar de dónde vengan estos datos (backup, Drive, etc).
   if(Object.keys(deletedIds).length){
+    entries.filter(e => deletedIds[e.id]).forEach(e => console.warn('[deletedIds-filter] entries: se descarta id=' + e.id, e));
+    movieEntries.filter(e => deletedIds[e.id]).forEach(e => console.warn('[deletedIds-filter] movieEntries: se descarta id=' + e.id, e));
     entries = entries.filter(e => !deletedIds[e.id]);
     movieEntries = movieEntries.filter(e => !deletedIds[e.id]);
   }
@@ -2775,7 +2779,7 @@ function driveSetBaseSnapshot(fullData){
   }
 }
 
-function mergeArraysById(baseIds, localArr, remoteArr){
+function mergeArraysById(baseIds, localArr, remoteArr, fieldName){
   const baseIdSet = new Set(baseIds || []);
   localArr = localArr || []; remoteArr = remoteArr || [];
   const localMap = new Map(localArr.map(i => [i.id, i]));
@@ -2791,14 +2795,26 @@ function mergeArraysById(baseIds, localArr, remoteArr){
     if(inLocal && inRemote){
       const localItem = localMap.get(id);
       const remoteItem = remoteMap.get(id);
-      result.push(JSON.stringify(localItem) === JSON.stringify(remoteItem)
-        ? localItem
-        : (driveConflictPreferLocal ? localItem : remoteItem));
+      const same = JSON.stringify(localItem) === JSON.stringify(remoteItem);
+      if(!same && (fieldName === 'entries' || fieldName === 'movieEntries')){
+        console.warn(`[drive-merge] ${fieldName} id=${id} difiere entre local y remoto — se usa ${driveConflictPreferLocal ? 'LOCAL' : 'REMOTO'}.`, { local: localItem, remote: remoteItem });
+      }
+      result.push(same ? localItem : (driveConflictPreferLocal ? localItem : remoteItem));
     } else if(inLocal && !inRemote){
-      if(inBase) return; // existía antes y ya no está en remoto: lo borraron allá, no lo resucitamos
+      if(inBase){
+        if(fieldName === 'entries' || fieldName === 'movieEntries'){
+          console.warn(`[drive-merge] ${fieldName} id=${id} se DESCARTA: estaba en la base y ya no está en remoto (se interpreta como borrado allá).`, localMap.get(id));
+        }
+        return; // existía antes y ya no está en remoto: lo borraron allá, no lo resucitamos
+      }
       result.push(localMap.get(id)); // es nuevo en este dispositivo
     } else if(inRemote && !inLocal){
-      if(inBase) return; // lo borramos acá, no lo resucitamos
+      if(inBase){
+        if(fieldName === 'entries' || fieldName === 'movieEntries'){
+          console.warn(`[drive-merge] ${fieldName} id=${id} se DESCARTA: estaba en la base y ya no está en local (se interpreta como borrado acá).`, remoteMap.get(id));
+        }
+        return; // lo borramos acá, no lo resucitamos
+      }
       result.push(remoteMap.get(id)); // es nuevo en Drive (vino de otro dispositivo)
     }
   });
@@ -2860,7 +2876,7 @@ function mergeAllData(base, local, remote, preferLocalOnConflict){
   driveConflictPreferLocal = preferLocalOnConflict;
   base = base || {};
   const merged = {};
-  DRIVE_ID_ARRAY_FIELDS.forEach(f => { merged[f] = mergeArraysById(base[f], local[f], remote[f]); });
+  DRIVE_ID_ARRAY_FIELDS.forEach(f => { merged[f] = mergeArraysById(base[f], local[f], remote[f], f); });
   DRIVE_DICT_FIELDS.forEach(f => { merged[f] = mergeDicts(base[f], local[f], remote[f]); });
   merged.deletedIds = mergeDeletedIds(local.deletedIds, remote.deletedIds);
   // Última barrera, ya dentro del propio merge: ningún ID marcado como borrado sobrevive.
@@ -2991,38 +3007,28 @@ async function driveDownloadFile(fileId){
 
 async function driveUploadFile(content){
   const jsonStr = JSON.stringify(content);
-  const bodyBlob = new Blob([jsonStr], { type: 'application/json' });
-
   if(driveFileId){
-    // Actualizar archivo existente vía subida "resumable" — a diferencia de la subida
-    // simple (que Google limita a 5MB), esta no tiene ese techo. Importante porque a
-    // medida que se acumulan portadas/covers, el archivo de backup puede superar los 5MB
-    // fácilmente, y una subida simple que falla por peso quedaba fallando en silencio
-    // (sin romper nada visible), haciendo que la próxima fusión comparara contra una
-    // versión de Drive desactualizada y borrara cosas agregadas recientemente.
-    const initRes = await driveApiFetch(
-      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=resumable`,
-      { method: 'PATCH', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'application/json' }, body: JSON.stringify({ name: DRIVE_FILE_NAME }) }
-    );
-    if(!initRes.ok) throw new Error('No se pudo iniciar la subida a Drive (' + initRes.status + ')');
-    const uploadUrl = initRes.headers.get('Location');
-    if(!uploadUrl) throw new Error('Drive no devolvió una URL de subida (sesión resumable)');
-    const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: bodyBlob });
-    if(!putRes.ok) throw new Error('No se pudo completar la subida a Drive (' + putRes.status + ')');
-    return await putRes.json();
+    const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonStr
+    });
+    if(!res.ok) throw new Error('No se pudo actualizar el archivo en Drive');
+    return await res.json();
   }
-
+  const boundary = 'bitacora_boundary_' + Date.now();
   const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
-  const initRes = await driveApiFetch(
-    `https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'application/json' }, body: JSON.stringify(metadata) }
-  );
-  if(!initRes.ok) throw new Error('No se pudo iniciar la creación del archivo en Drive (' + initRes.status + ')');
-  const uploadUrl = initRes.headers.get('Location');
-  if(!uploadUrl) throw new Error('Drive no devolvió una URL de subida (sesión resumable)');
-  const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: bodyBlob });
-  if(!putRes.ok) throw new Error('No se pudo completar la creación del archivo en Drive (' + putRes.status + ')');
-  const data = await putRes.json();
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${jsonStr}\r\n` +
+    `--${boundary}--`;
+  const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`, {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body
+  });
+  if(!res.ok) throw new Error('No se pudo crear el archivo en Drive');
+  const data = await res.json();
   driveFileId = data.id;
   localStorage.setItem(pk('driveFileId'), driveFileId);
   return data;
@@ -3058,13 +3064,16 @@ async function driveMergeWithRemote(){
       const preferLocal = !remoteModified || (lastLocalChange && new Date(lastLocalChange) > new Date(remoteModified));
 
       const freshLocalData = collectAllData();
+      console.log('[drive-merge] arrancando fusión — local:', freshLocalData.entries.length, 'capítulos /', freshLocalData.movieEntries.length, 'películas · remoto:', remoteData.entries.length, 'capítulos /', remoteData.movieEntries.length, 'películas · preferLocal:', preferLocal);
       const merged = mergeAllData(base, freshLocalData, remoteData, preferLocal);
+      console.log('[drive-merge] resultado fusionado:', merged.entries.length, 'capítulos /', merged.movieEntries.length, 'películas');
 
       driveApplyingRemote = true;
       await applyAllData(merged);
       driveApplyingRemote = false;
 
       const finalData = collectAllData();
+      console.log('[drive-merge] estado final tras aplicar (con filtro de deletedIds):', finalData.entries.length, 'capítulos /', finalData.movieEntries.length, 'películas');
       localStorage.setItem(DATA_KEY, JSON.stringify(collectDataForLocalStorage()));
       await driveUploadFile(finalData);
       driveSetBaseSnapshot(finalData);
@@ -4170,55 +4179,29 @@ async function fetchNextEpisodeInfo(link){
   return null;
 }
 
-// Una franquicia "grande" (ej. UCM) casi nunca es UNA sola colección de TMDB: TMDB las separa
-// en varias más chicas ("Captain America Collection", "Spider-Man Collection", "Avengers
-// Collection", etc). Por eso guardamos un ARRAY de colecciones por franquicia, y se va
-// completando de a una a medida que registrás películas de distintas sub-sagas.
-function getFranchiseCollectionIds(fKey){
+async function ensureFranchiseTmdbCollection(fKey){
   const f = franchises[fKey];
-  if(!f) return [];
-  if(Array.isArray(f.tmdbCollectionIds)) return f.tmdbCollectionIds;
-  // Migración desde el formato viejo (un solo id)
-  if(f.tmdbCollectionId){
-    f.tmdbCollectionIds = [f.tmdbCollectionId];
-    delete f.tmdbCollectionId;
-    return f.tmdbCollectionIds;
-  }
-  return [];
-}
-function addFranchiseCollectionId(fKey, collectionId){
-  if(!collectionId) return;
-  const f = franchises[fKey];
-  if(!f) return;
-  const ids = getFranchiseCollectionIds(fKey);
-  if(!ids.includes(collectionId)) ids.push(collectionId);
-  f.tmdbCollectionIds = ids;
-}
-
-async function ensureFranchiseTmdbCollections(fKey){
-  const f = franchises[fKey];
-  if(!f || !settings.tmdbApiKey) return [];
-  const existing = getFranchiseCollectionIds(fKey);
-  if(existing.length) return existing;
-  // Respaldo: si la franquicia nunca se vinculó registrando una película por TMDB, intentamos
-  // adivinar buscando una colección por el nombre que le pusiste (funciona mejor con nombres
-  // que coincidan con el nombre real de la colección en TMDB, no con abreviaturas como "UCM").
+  if(!f || !settings.tmdbApiKey) return null;
+  if(f.tmdbCollectionId) return f.tmdbCollectionId;
   try{
     const res = await fetch(`https://api.themoviedb.org/3/search/collection?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES&query=${encodeURIComponent(f.name)}`);
-    if(!res.ok) return [];
+    if(!res.ok) return null;
     const data = await res.json();
     const top = data.results && data.results[0];
     if(top){
-      addFranchiseCollectionId(fKey, top.id);
-      return getFranchiseCollectionIds(fKey);
+      f.tmdbCollectionId = top.id;
+      return top.id;
     }
   }catch(err){ console.warn('No se pudo buscar la colección de TMDB para', f.name, err); }
-  return [];
+  return null;
 }
 
 async function fetchFranchiseUpcoming(fKey){
-  const collectionIds = await ensureFranchiseTmdbCollections(fKey);
-  if(!collectionIds.length) return null;
+  const collectionId = await ensureFranchiseTmdbCollection(fKey);
+  if(!collectionId) return null;
+  const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES`);
+  if(!res.ok) return null;
+  const data = await res.json();
   const today = todayIsoDate();
   // Excluimos tanto lo etiquetado a esta franquicia como cualquier título ya registrado en general
   // (por si se agregó sin marcarlo como parte de la franquicia).
@@ -4227,22 +4210,12 @@ async function fetchFranchiseUpcoming(fKey){
     ...movieEntries.map(e => seriesKey(e.title))
   ]);
 
-  const allUpcoming = [];
-  for(const collectionId of collectionIds){
-    try{
-      const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${encodeURIComponent(settings.tmdbApiKey)}&language=es-ES`);
-      if(!res.ok) continue;
-      const data = await res.json();
-      (data.parts || []).forEach(p => {
-        if(p.release_date && p.release_date >= today && !registeredTitleKeys.has(seriesKey(p.title))){
-          allUpcoming.push(p);
-        }
-      });
-    }catch(err){ console.warn('No se pudo revisar la colección', collectionId, 'de', fKey, err); }
-  }
+  const upcoming = (data.parts || [])
+    .filter(p => p.release_date && p.release_date >= today)
+    .filter(p => !registeredTitleKeys.has(seriesKey(p.title)))
+    .sort((a, b) => a.release_date.localeCompare(b.release_date));
 
-  allUpcoming.sort((a, b) => a.release_date.localeCompare(b.release_date));
-  return allUpcoming[0] || null;
+  return upcoming[0] || null;
 }
 
 function renderUpcomingPanel(){
@@ -5602,11 +5575,11 @@ async function addMovieEntry(){
   if(mTipoVal) movieTypes[mKey] = mTipoVal;
   if(mDuracionVal > 0) movieDuration[mKey] = mDuracionVal;
   if(mFranquiciaVal && mFranquiciaVal !== '__new__' && franchises[mFranquiciaVal]) movieSagas[mKey] = mFranquiciaVal;
-  // Si la película se vinculó por búsqueda de TMDB y pertenece a una colección, la sumamos a la
-  // franquicia asignada (una franquicia grande como "UCM" en TMDB en realidad son varias
-  // colecciones separadas por sub-saga, así que vamos acumulando cada una que aparezca).
+  // Si la película se vinculó por búsqueda de TMDB y pertenece a una colección, la guardamos en
+  // la franquicia asignada — es mucho más confiable que buscar la colección por el nombre corto
+  // que le puso el usuario a la franquicia (ej. "UCM" no matchea "Marvel Cinematic Universe").
   if(mFranquiciaVal && franchises[mFranquiciaVal] && pendingApiCollectionId){
-    addFranchiseCollectionId(mFranquiciaVal, pendingApiCollectionId);
+    franchises[mFranquiciaVal].tmdbCollectionId = pendingApiCollectionId;
   }
   // Géneros traídos de TMDB/Jikan (si se buscó el título antes de registrar)
   if(pendingApiGenresMovie && pendingApiGenresMovie.length){
