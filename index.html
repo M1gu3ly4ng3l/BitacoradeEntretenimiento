@@ -2571,6 +2571,42 @@ function collectDataForLocalStorage(){
   return rest;
 }
 
+// Solo el NOMBRE de cada canción, sin el audio en sí (que puede pesar varios MB cada una).
+// Esto es lo que viaja en la sincronización AUTOMÁTICA con Drive: así cada sync es liviano
+// y rápido, en vez de subir megas y megas de audio cada vez que cambia cualquier cosa chica
+// (lo cual además superaba el límite de subida de Drive y hacía que cosas recién agregadas
+// parecieran "borrarse" al sincronizar). El backup manual (botón "Exportar backup") sigue
+// llevando el audio completo, para que sea una copia de verdad restaurable en otro lado.
+function stripMusicAudio(musicDict){
+  const out = {};
+  Object.keys(musicDict || {}).forEach(k => {
+    const v = musicDict[k];
+    out[k] = v ? { name: v.name } : v;
+  });
+  return out;
+}
+function collectDataForDriveSync(){
+  const full = collectAllData();
+  return {
+    ...full,
+    folderMusic: stripMusicAudio(full.folderMusic),
+    movieFolderMusic: stripMusicAudio(full.movieFolderMusic)
+  };
+}
+// Al aplicar datos livianos (sin audio) que vienen de Drive, NO pisamos el audio real que
+// ya tenemos guardado en este dispositivo — solo actualizamos qué carpetas tienen música
+// según los demás dispositivos, conservando nuestro propio audio donde ya lo tengamos.
+function hydrateMusicDict(incoming, existing){
+  const result = {};
+  Object.keys(incoming || {}).forEach(k => {
+    const inc = incoming[k];
+    if(inc && inc.dataUrl){ result[k] = inc; return; }               // vino completo (backup manual restaurado)
+    if(existing[k] && existing[k].dataUrl){ result[k] = existing[k]; return; } // ya lo teníamos completo acá
+    result[k] = inc; // solo referencia liviana (nombre); el audio no está disponible todavía en este dispositivo
+  });
+  return result;
+}
+
 async function applyAllData(parsed){
   if(typeof parsed !== 'object' || parsed === null){
     throw new Error('Formato inválido');
@@ -2586,7 +2622,9 @@ async function applyAllData(parsed){
   genres = parsed.genres || {};
   types = parsed.types || {};
   sagas = parsed.sagas || {};
-  folderMusic = parsed.folderMusic || {};
+  // No pisamos el audio real que ya tenemos guardado acá con una versión liviana (solo
+  // nombre) que pudo haber llegado de una sincronización con Drive.
+  folderMusic = hydrateMusicDict(parsed.folderMusic, folderMusic);
   seriesGoals = parsed.seriesGoals || {};
   seriesDuration = parsed.seriesDuration || {};
   seriesApiLink = parsed.seriesApiLink || {};
@@ -2597,7 +2635,7 @@ async function applyAllData(parsed){
   movieTypes = parsed.movieTypes || {};
   movieSagas = parsed.movieSagas || {};
   franchises = parsed.franchises || {};
-  movieFolderMusic = parsed.movieFolderMusic || {};
+  movieFolderMusic = hydrateMusicDict(parsed.movieFolderMusic, movieFolderMusic);
   movieDuration = parsed.movieDuration || {};
   settings = normalizeSettings(parsed.settings);
 
@@ -3007,28 +3045,37 @@ async function driveDownloadFile(fileId){
 
 async function driveUploadFile(content){
   const jsonStr = JSON.stringify(content);
+  const bodyBlob = new Blob([jsonStr], { type: 'application/json' });
+
   if(driveFileId){
-    const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: jsonStr
-    });
-    if(!res.ok) throw new Error('No se pudo actualizar el archivo en Drive');
-    return await res.json();
+    // Subida "resumable": a diferencia de la subida simple (que Google limita a 5MB),
+    // esta no tiene ese techo. Con música/portadas acumuladas el archivo puede superar
+    // fácil los 5MB, y una subida simple que fallara por peso lo hacía en silencio —
+    // sin romper nada visible — dejando que la próxima fusión comparara contra una
+    // versión vieja de Drive y borrara cosas agregadas recientemente.
+    const initRes = await driveApiFetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=resumable`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'application/json' }, body: JSON.stringify({ name: DRIVE_FILE_NAME }) }
+    );
+    if(!initRes.ok) throw new Error('No se pudo iniciar la subida a Drive (' + initRes.status + ')');
+    const uploadUrl = initRes.headers.get('Location');
+    if(!uploadUrl) throw new Error('Drive no devolvió una URL de subida (sesión resumable)');
+    const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: bodyBlob });
+    if(!putRes.ok) throw new Error('No se pudo completar la subida a Drive (' + putRes.status + ')');
+    return await putRes.json();
   }
-  const boundary = 'bitacora_boundary_' + Date.now();
+
   const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
-  const body =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
-    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${jsonStr}\r\n` +
-    `--${boundary}--`;
-  const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`, {
-    method: 'POST',
-    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-    body
-  });
-  if(!res.ok) throw new Error('No se pudo crear el archivo en Drive');
-  const data = await res.json();
+  const initRes = await driveApiFetch(
+    `https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'application/json' }, body: JSON.stringify(metadata) }
+  );
+  if(!initRes.ok) throw new Error('No se pudo iniciar la creación del archivo en Drive (' + initRes.status + ')');
+  const uploadUrl = initRes.headers.get('Location');
+  if(!uploadUrl) throw new Error('Drive no devolvió una URL de subida (sesión resumable)');
+  const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: bodyBlob });
+  if(!putRes.ok) throw new Error('No se pudo completar la creación del archivo en Drive (' + putRes.status + ')');
+  const data = await putRes.json();
   driveFileId = data.id;
   localStorage.setItem(pk('driveFileId'), driveFileId);
   return data;
@@ -3051,8 +3098,8 @@ async function driveMergeWithRemote(){
       const remoteData = await driveDownloadFile(driveFileId);
       const base = driveGetBaseSnapshot();
 
-      if(JSON.stringify(remoteData) === JSON.stringify(collectAllData())){
-        driveSetBaseSnapshot(collectAllData());
+      if(JSON.stringify(remoteData) === JSON.stringify(collectDataForDriveSync())){
+        driveSetBaseSnapshot(collectDataForDriveSync());
         localStorage.setItem(pk('driveLastSyncedIso'), new Date().toISOString());
         driveSetStatus('connected', 'Google Drive: ya estaba al día');
         continue;
@@ -3063,7 +3110,7 @@ async function driveMergeWithRemote(){
       const remoteModified = remoteMeta ? remoteMeta.modifiedTime : null;
       const preferLocal = !remoteModified || (lastLocalChange && new Date(lastLocalChange) > new Date(remoteModified));
 
-      const freshLocalData = collectAllData();
+      const freshLocalData = collectDataForDriveSync();
       console.log('[drive-merge] arrancando fusión — local:', freshLocalData.entries.length, 'capítulos /', freshLocalData.movieEntries.length, 'películas · remoto:', remoteData.entries.length, 'capítulos /', remoteData.movieEntries.length, 'películas · preferLocal:', preferLocal);
       const merged = mergeAllData(base, freshLocalData, remoteData, preferLocal);
       console.log('[drive-merge] resultado fusionado:', merged.entries.length, 'capítulos /', merged.movieEntries.length, 'películas');
@@ -3072,7 +3119,7 @@ async function driveMergeWithRemote(){
       await applyAllData(merged);
       driveApplyingRemote = false;
 
-      const finalData = collectAllData();
+      const finalData = collectDataForDriveSync();
       console.log('[drive-merge] estado final tras aplicar (con filtro de deletedIds):', finalData.entries.length, 'capítulos /', finalData.movieEntries.length, 'películas');
       localStorage.setItem(DATA_KEY, JSON.stringify(collectDataForLocalStorage()));
       await driveUploadFile(finalData);
@@ -3096,7 +3143,7 @@ async function driveSyncOnConnect(){
 
     if(!remoteMeta){
       // No existe archivo en Drive todavía: lo creamos con lo que hay local
-      const localData = collectAllData();
+      const localData = collectDataForDriveSync();
       await driveUploadFile(localData);
       driveSetBaseSnapshot(localData);
       localStorage.setItem(pk('driveLastSyncedIso'), new Date().toISOString());
@@ -3121,7 +3168,7 @@ function scheduleDriveUpload(){
       if(driveFileId){
         await driveMergeWithRemote();
       } else {
-        const localData = collectAllData();
+        const localData = collectDataForDriveSync();
         await driveUploadFile(localData);
         driveSetBaseSnapshot(localData);
         localStorage.setItem(pk('driveLastSyncedIso'), new Date().toISOString());
@@ -3144,7 +3191,7 @@ document.getElementById('btnSyncDriveNow').addEventListener('click', async () =>
     if(driveFileId){
       await driveMergeWithRemote();
     } else {
-      const localData = collectAllData();
+      const localData = collectDataForDriveSync();
       await driveUploadFile(localData);
       driveSetBaseSnapshot(localData);
       localStorage.setItem(pk('driveLastSyncedIso'), new Date().toISOString());
