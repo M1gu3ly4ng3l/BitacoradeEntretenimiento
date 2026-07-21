@@ -917,6 +917,35 @@ body{
 }
 .genre-edit-btn:hover{ opacity:1; border-color:var(--rewatch); color:var(--rewatch); }
 
+/* ---------- Arcos por serie ---------- */
+.arc-manage-btn{
+  font-size:11px; color:var(--text-dim); border:1px solid var(--line); border-radius:20px;
+  padding:3px 8px; cursor:pointer; opacity:0.7;
+}
+.arc-manage-btn:hover{ opacity:1; border-color:#4aa8e8; color:#4aa8e8; }
+.arc-group{
+  border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px;
+  background:rgba(255,255,255,0.02);
+}
+.arc-header{
+  display:flex; align-items:center; gap:8px; cursor:pointer; flex-wrap:wrap;
+}
+.arc-name{ font-family:'Oswald', sans-serif; font-weight:600; font-size:13px; color:var(--text); }
+.arc-ongoing-tag{
+  font-size:10.5px; color:var(--rec); letter-spacing:0.3px; font-family:'JetBrains Mono', monospace;
+}
+.arc-header-spacer{ flex:1; }
+.arc-group .entries-collapse{ margin-top:8px; }
+
+.arc-modal-row{
+  display:flex; align-items:center; gap:10px;
+  background:var(--bg-card); border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+}
+.arc-modal-info{ flex:1; min-width:0; }
+.arc-modal-name{ font-size:13px; font-weight:600; color:var(--text); }
+.arc-modal-range{ font-size:10.5px; color:var(--text-dim); margin-top:2px; }
+.arc-modal-actions{ display:flex; gap:6px; flex-shrink:0; }
+
 /*Música*/
 .music-btn{
   flex-shrink:0; width:34px; height:34px; border-radius:8px;
@@ -1937,6 +1966,33 @@ body{
     </div>
   </div>
 
+  <div class="modal-overlay" id="arcModalOverlay" style="display:none;">
+    <div class="modal-card" style="max-width:440px;">
+      <button class="wrapped-close" id="arcModalClose" title="Cerrar">✕</button>
+      <div class="panel-label" id="arcModalTitle">📜 Arcos</div>
+      <div style="font-size:11.5px; color:var(--text-dim); margin:-6px 0 12px; line-height:1.5;">
+        Opcional, pensado para series muy largas (ej. One Piece). Cada arco agrupa un rango de capítulos;
+        el más nuevo puede quedar abierto ("en emisión") y absorbe capítulos nuevos solo. Los capítulos que
+        no entren en ningún rango quedan en "Sin arco", sin perderse.
+      </div>
+      <div id="arcModalList" style="display:flex; flex-direction:column; gap:8px; max-height:32vh; overflow-y:auto;"></div>
+
+      <div class="panel-label" style="font-size:11px; margin-top:14px;">✚ Agregar arco</div>
+      <div id="arcNewFormBlocked" class="activity-detail-empty" style="display:none; margin:4px 0;">
+        Ya hay un arco "en emisión" sin cerrar. Cerralo (desde la lista de arriba) antes de agregar uno nuevo.
+      </div>
+      <div id="arcNewForm" style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:4px;">
+        <input type="text" id="arcNewName" placeholder="Nombre del arco (ej: Alabasta)">
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="arcNewStart" min="1" placeholder="Capítulo inicio" style="flex:1;">
+          <input type="number" id="arcNewEnd" min="1" placeholder="Capítulo fin (opcional)" style="flex:1;">
+        </div>
+        <button type="button" class="btn-record" id="arcNewSave" style="margin-top:0;">✚ Agregar arco</button>
+        <div class="error-msg" id="arcNewErr" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="bulkEditModalOverlay" style="display:none;">
     <div class="modal-card">
       <button class="wrapped-close" id="bulkEditModalClose" title="Cerrar">✕</button>
@@ -2173,6 +2229,8 @@ let franchises = {};       // { franchiseKey: { name:'UCM', goal: 33 } } — reg
 let movieFolderMusic = {}; // { titleKeyLower: {name, dataUrl} }
 let movieDuration = {};  // { titleKeyLower: minutos (number) } — pisa el promedio general por tipo
 let seriesApiLink = {};   // { serieKeyLower: {source:'jikan'|'tmdb', malId, tmdbId, tmdbMediaType, lastChecked} } — para actualizar la meta sola
+let seriesArcs = {};      // { serieKeyLower: [{id, name, start, end (null = en emisión)}, ...] } — opcional, para dividir series muy largas
+let expandedArcs = new Set(); // claves "serieKey::arcId" (o "serieKey::none" para "Sin arco") de arcos actualmente expandidos
 // Datos traídos de Jikan/TMDB en la última búsqueda seleccionada, a la espera de que se registre el visionado
 let pendingApiGenresSeries = null;
 let pendingApiEpisodesSeries = null;
@@ -2228,6 +2286,16 @@ let activeSeriesSub = 'log';
 let activeMovieSub = 'log';
 
 function pad(n){ return String(n).padStart(2,'0'); }
+
+// Genérico: devuelve una versión de `fn` que espera `delay` ms de silencio antes de ejecutarse.
+// Se usa en los buscadores para no recalcular todo en cada tecla, solo cuando la persona hace una pausa.
+function debounce(fn, delay = 220){
+  let timer = null;
+  return function(...args){
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
 
 /* ========================= TOAST / DESHACER ========================= */
 function showUndoToast(message, undoFn, duration = 6000){
@@ -2481,6 +2549,7 @@ async function loadAll(){
       seriesGoals = parsed.seriesGoals || {};
       seriesDuration = parsed.seriesDuration || {};
       seriesApiLink = parsed.seriesApiLink || {};
+      seriesArcs = parsed.seriesArcs || {};
       movieEntries = parsed.movieEntries || [];
       movieCovers = parsed.movieCovers || {};
       moviePending = parsed.moviePending || [];
@@ -2554,7 +2623,7 @@ async function saveAll(){
 /*BACKUP: exportar / restaurar todo*/
 function collectAllData(){
   return {
-    entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration, seriesApiLink,
+    entries, status, statusManualAt, trash, deletedIds, customAchievements, covers, pending, genres, types, sagas, folderMusic, seriesGoals, seriesDuration, seriesApiLink, seriesArcs,
     movieEntries, movieCovers, moviePending, movieGenres, movieTypes, movieSagas, franchises, movieFolderMusic, movieDuration, settings,
     exportedAt: new Date().toISOString(),
     backupVersion: 1
@@ -2588,6 +2657,7 @@ async function applyAllData(parsed){
   seriesGoals = parsed.seriesGoals || {};
   seriesDuration = parsed.seriesDuration || {};
   seriesApiLink = parsed.seriesApiLink || {};
+  seriesArcs = parsed.seriesArcs || {};
   movieEntries = parsed.movieEntries || [];
   movieCovers = parsed.movieCovers || {};
   moviePending = parsed.moviePending || [];
@@ -2644,12 +2714,63 @@ function exportBackup(){
   hideBackupReminder();
 }
 
+// Antes de reemplazar todo, nos fijamos que el archivo realmente tenga la forma de un
+// backup de esta app (y no, por ejemplo, un JSON cualquiera, uno de otra versión muy vieja,
+// o un archivo corrupto a medias). Si algo no encaja, avisamos con la razón puntual en vez
+// de dejar que la restauración siga adelante con datos raros.
+function validateBackupShape(parsed){
+  if(typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)){
+    return { valid:false, reason:'El archivo no es un backup válido (no tiene la estructura esperada de un objeto JSON).' };
+  }
+
+  const arrayFields = ['entries', 'movieEntries', 'pending', 'moviePending', 'trash', 'customAchievements'];
+  for(const field of arrayFields){
+    if(field in parsed && !Array.isArray(parsed[field])){
+      return { valid:false, reason:`El campo "${field}" del archivo debería ser una lista y no lo es. Puede que el archivo esté corrupto o no sea un backup de esta app.` };
+    }
+  }
+
+  const dictFields = ['status', 'covers', 'genres', 'types', 'folderMusic', 'seriesGoals', 'seriesDuration',
+    'movieCovers', 'movieGenres', 'movieTypes', 'movieFolderMusic', 'movieDuration', 'franchises', 'settings'];
+  for(const field of dictFields){
+    if(field in parsed && (typeof parsed[field] !== 'object' || parsed[field] === null || Array.isArray(parsed[field]))){
+      return { valid:false, reason:`El campo "${field}" del archivo no tiene el formato esperado. Puede que el archivo esté corrupto o no sea un backup de esta app.` };
+    }
+  }
+
+  // Si el archivo no tiene NINGUNO de los campos que reconocemos, probablemente no es un backup de la bitácora
+  const knownFields = [...arrayFields, ...dictFields, 'seriesApiLink', 'seriesArcs', 'sagas', 'movieSagas', 'deletedIds', 'statusManualAt', 'exportedAt', 'backupVersion'];
+  const hasAnyKnownField = knownFields.some(f => f in parsed);
+  if(!hasAnyKnownField){
+    return { valid:false, reason:'El archivo no tiene ninguno de los campos que esperaríamos de un backup de esta bitácora.' };
+  }
+
+  return { valid:true };
+}
+
 async function restoreBackup(file){
   const text = await file.text();
-  const parsed = JSON.parse(text);
+  let parsed;
+  try{
+    parsed = JSON.parse(text);
+  }catch(err){
+    throw new Error('El archivo no es un JSON válido (¿seguro que es el backup correcto?).');
+  }
+
+  const check = validateBackupShape(parsed);
+  if(!check.valid){
+    throw new Error(check.reason);
+  }
+
+  // Guardamos una foto de lo que había ANTES de restaurar, para poder deshacer si el
+  // backup restaurado resulta no ser el que querías (ej. subiste uno viejo por error).
+  const previousData = collectAllData();
+
   await applyAllData(parsed);
   localStorage.removeItem(pk('driveBaseSnapshot')); // el backup restaurado es una versión nueva; no comparar contra la sincronización vieja
   await saveAll();
+
+  return previousData;
 }
 
 document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
@@ -2663,11 +2784,16 @@ document.getElementById('backupFileInput').addEventListener('change', async (e) 
   const ok = await customConfirm('Restaurar un backup reemplaza TODOS tus datos actuales (series, películas, pendientes, portadas, música). ¿Seguro que quieres continuar?', { icon:'♻️', title:'Restaurar backup', okText:'Restaurar', danger:true });
   if(!ok) return;
   try{
-    await restoreBackup(file);
-    await customAlert('¡Backup restaurado con éxito!', { icon:'✅', title:'Listo' });
+    const previousData = await restoreBackup(file);
+    showUndoToast('Backup restaurado con éxito. Se reemplazaron todos tus datos.', async () => {
+      await applyAllData(previousData);
+      localStorage.removeItem(pk('driveBaseSnapshot'));
+      await saveAll();
+    }, 15000);
   }catch(err){
     console.error('Error al restaurar backup:', err);
-    await customAlert('No se pudo leer ese archivo. Asegúrate de que sea un backup exportado desde esta misma app (.json).', { icon:'⚠️', title:'Error' });
+    const detail = (err && err.message) ? err.message : 'Asegúrate de que sea un backup exportado desde esta misma app (.json).';
+    await customAlert(`No se pudo restaurar ese archivo. ${detail}`, { icon:'⚠️', title:'Error' });
   }
 });
 
@@ -3184,13 +3310,13 @@ if(isIos && !isStandalone){
 // el aviso se vea como una notificación nativa, con ícono y todo).
 let notifiedKeys = new Set();
 try{
-  notifiedKeys = new Set(JSON.parse(localStorage.getItem('notifiedReleaseKeys') || '[]'));
+  notifiedKeys = new Set(JSON.parse(localStorage.getItem(pk('notifiedReleaseKeys')) || '[]'));
 }catch(e){ notifiedKeys = new Set(); }
 
 function saveNotifiedKeys(){
   try{
     const arr = [...notifiedKeys].slice(-300); // no dejar que crezca sin límite
-    localStorage.setItem('notifiedReleaseKeys', JSON.stringify(arr));
+    localStorage.setItem(pk('notifiedReleaseKeys'), JSON.stringify(arr));
   }catch(e){ /* no-op */ }
 }
 
@@ -5205,7 +5331,7 @@ document.getElementById('globalSearchModalClose').addEventListener('click', clos
 document.getElementById('globalSearchModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'globalSearchModalOverlay') closeGlobalSearch();
 });
-document.getElementById('globalSearchInput').addEventListener('input', runGlobalSearch);
+document.getElementById('globalSearchInput').addEventListener('input', debounce(runGlobalSearch));
 
 function renderTimeCapsulePanel(){
   const panel = document.getElementById('timeCapsulePanel');
@@ -5260,10 +5386,271 @@ function renderTimeCapsulePanel(){
     </div>`).join('');
 }
 
-function render(){
-  renderContinueWatching();
-  renderTimeCapsulePanel();
-  updateSerieList();
+/* ========================= ARCOS POR SERIE (opcional, para series muy largas) ========================= */
+function getArcsForSeries(name){
+  const list = seriesArcs[seriesKey(name)] || [];
+  return list.slice().sort((a, b) => a.start - b.start);
+}
+// Devuelve el arco cuyo rango [start, end] contiene ese número de capítulo (o null si no hay match).
+// Un arco sin "end" (en emisión) contiene cualquier capítulo >= su start.
+function findArcForEpisode(arcsList, episodeNum){
+  if(episodeNum == null || isNaN(episodeNum)) return null;
+  for(const arc of arcsList){
+    if(episodeNum >= arc.start && (arc.end == null || episodeNum <= arc.end)) return arc;
+  }
+  return null;
+}
+function genArcId(){
+  return 'arc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function hasOpenArc(name){
+  return getArcsForSeries(name).some(a => a.end == null);
+}
+
+// Agrupa los episodios de una serie en sus arcos (más un bloque "Sin arco" para lo que no encaje
+// en ningún rango) y arma el HTML de cada uno, con su propio progreso y su propio expandir/colapsar.
+function buildArcGroupedHtml(serie, items, arcsList){
+  const key = seriesKey(serie);
+  const buckets = arcsList.map(arc => ({ arc, items: [] }));
+  const noArcItems = [];
+
+  items.forEach(e => {
+    const epNum = parseInt(e.episode, 10);
+    const arc = findArcForEpisode(arcsList, isNaN(epNum) ? null : epNum);
+    if(arc){
+      buckets.find(b => b.arc.id === arc.id).items.push(e);
+    } else {
+      noArcItems.push(e);
+    }
+  });
+
+  let html = '';
+
+  buckets.forEach(({ arc, items: arcItems }) => {
+    const arcKey = `${key}::${arc.id}`;
+    const arcOpen = expandedArcs.has(arcKey);
+    const isOngoing = arc.end == null;
+    const total = isOngoing ? null : (arc.end - arc.start + 1);
+    const watched = new Set(arcItems.map(e => e.episode)).size;
+    const pct = total ? Math.min(100, Math.round((watched / total) * 100)) : 0;
+
+    html += `
+      <div class="arc-group">
+        <div class="arc-header" onclick="event.stopPropagation(); toggleArcExpand('${key}','${arc.id}')">
+          <span class="series-chevron ${arcOpen ? 'open' : ''}">▸</span>
+          <span class="arc-name">${escapeHtml(arc.name)}</span>
+          <span class="badge">${arcItems.length} ep.</span>
+          ${isOngoing
+            ? `<span class="arc-ongoing-tag">🔴 En emisión — ${watched} capítulos vistos</span>`
+            : `<span class="progress-label">${watched}/${total} · ${pct}%</span>`}
+          <span class="arc-header-spacer"></span>
+          ${isOngoing ? `<button type="button" class="btn-mini" onclick="event.stopPropagation(); closeArcPrompt(decodeURIComponent('${encodeURIComponent(serie)}'),'${arc.id}')">Cerrar arco</button>` : ''}
+        </div>
+        ${!isOngoing ? `<div class="progress-row" style="margin:0 0 8px 2px;"><div class="progress-track ${pct >= 100 ? 'complete' : ''}"><div class="progress-mask" style="width:${100 - pct}%"></div></div></div>` : ''}
+        <div class="entries-collapse ${arcOpen ? 'open' : ''}">${renderSeriesEntryCards(arcItems)}</div>
+      </div>`;
+  });
+
+  if(noArcItems.length){
+    const arcKey = `${key}::none`;
+    const arcOpen = expandedArcs.has(arcKey);
+    html += `
+      <div class="arc-group">
+        <div class="arc-header" onclick="event.stopPropagation(); toggleArcExpand('${key}','none')">
+          <span class="series-chevron ${arcOpen ? 'open' : ''}">▸</span>
+          <span class="arc-name">Sin arco</span>
+          <span class="badge">${noArcItems.length} ep.</span>
+        </div>
+        <div class="entries-collapse ${arcOpen ? 'open' : ''}">${renderSeriesEntryCards(noArcItems)}</div>
+      </div>`;
+  }
+
+  return html;
+}
+function toggleArcExpand(key, arcId){
+  const arcKey = `${key}::${arcId}`;
+  if(expandedArcs.has(arcKey)) expandedArcs.delete(arcKey);
+  else expandedArcs.add(arcKey);
+  render();
+}
+window.toggleArcExpand = toggleArcExpand;
+
+async function closeArcPrompt(serie, arcId){
+  const key = seriesKey(serie);
+  const list = seriesArcs[key] || [];
+  const arc = list.find(a => a.id === arcId);
+  if(!arc) return;
+  const input = await customPrompt(`¿En qué capítulo termina el arco "${arc.name}"?`, '', { icon:'📜', title:'Cerrar arco', okText:'Cerrar arco' });
+  if(input === null) return;
+  const n = parseInt(input, 10);
+  if(!(n >= arc.start)){
+    await customAlert('El capítulo final tiene que ser mayor o igual al de inicio del arco.', { icon:'⚠️', title:'Número inválido' });
+    return;
+  }
+  arc.end = n;
+  render();
+  await saveAll();
+
+  const wantsNext = await customConfirm(`¿Querés armar ya el siguiente arco, a partir del capítulo ${n + 1}?`, { icon:'📜', title:'Siguiente arco', okText:'Sí, crear' });
+  if(!wantsNext) return;
+  const name = await customPrompt('Nombre del siguiente arco:', '', { icon:'📜', title:'Nuevo arco', okText:'Crear' });
+  if(name === null || !name.trim()) return;
+  list.push({ id: genArcId(), name: name.trim(), start: n + 1, end: null });
+  render();
+  await saveAll();
+}
+window.closeArcPrompt = closeArcPrompt;
+
+let arcModalTarget = null; // nombre de la serie cuyo modal de arcos está abierto
+
+function renderArcModalList(){
+  const list = getArcsForSeries(arcModalTarget);
+  const el = document.getElementById('arcModalList');
+  if(!list.length){
+    el.innerHTML = '<div class="activity-detail-empty">Todavía no hay arcos definidos para esta serie.</div>';
+    return;
+  }
+  el.innerHTML = list.map(arc => `
+    <div class="arc-modal-row">
+      <div class="arc-modal-info">
+        <div class="arc-modal-name">${escapeHtml(arc.name)}</div>
+        <div class="arc-modal-range">Cap. ${arc.start}${arc.end != null ? ` – ${arc.end}` : ' en adelante (🔴 en emisión)'}</div>
+      </div>
+      <div class="arc-modal-actions">
+        ${arc.end == null ? `<button type="button" class="btn-mini" onclick="closeArcPrompt(decodeURIComponent('${encodeURIComponent(arcModalTarget)}'),'${arc.id}')">Cerrar</button>` : ''}
+        <button type="button" class="btn-mini" onclick="deleteArcPrompt('${arc.id}')" title="Eliminar arco (los capítulos no se borran, solo dejan de estar agrupados)">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function openArcModal(serie){
+  arcModalTarget = serie;
+  document.getElementById('arcModalTitle').textContent = `📜 Arcos — ${serie}`;
+  document.getElementById('arcNewName').value = '';
+  document.getElementById('arcNewStart').value = '';
+  document.getElementById('arcNewEnd').value = '';
+  renderArcModalList();
+  const blocked = hasOpenArc(serie);
+  document.getElementById('arcNewFormBlocked').style.display = blocked ? 'block' : 'none';
+  document.getElementById('arcNewForm').style.display = blocked ? 'none' : 'grid';
+  document.getElementById('arcModalOverlay').style.display = 'flex';
+}
+window.openArcModal = openArcModal;
+function closeArcModal(){
+  document.getElementById('arcModalOverlay').style.display = 'none';
+  arcModalTarget = null;
+}
+
+async function addArcFromModal(){
+  const name = document.getElementById('arcNewName').value.trim();
+  const start = parseInt(document.getElementById('arcNewStart').value, 10);
+  const endRaw = document.getElementById('arcNewEnd').value;
+  const end = endRaw.trim() === '' ? null : parseInt(endRaw, 10);
+  const errEl = document.getElementById('arcNewErr');
+  errEl.style.display = 'none';
+
+  if(!name || !(start > 0) || (end != null && !(end >= start))){
+    errEl.textContent = 'Completá un nombre, un capítulo de inicio válido, y si ponés fin, que sea mayor o igual al inicio.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const key = seriesKey(arcModalTarget);
+  if(!seriesArcs[key]) seriesArcs[key] = [];
+  if(end == null && hasOpenArc(arcModalTarget)){
+    errEl.textContent = 'Ya hay un arco en emisión sin cerrar. Cerralo antes de crear otro arco abierto.';
+    errEl.style.display = 'block';
+    return;
+  }
+  seriesArcs[key].push({ id: genArcId(), name, start, end });
+  render();
+  await saveAll();
+  document.getElementById('arcNewName').value = '';
+  document.getElementById('arcNewStart').value = '';
+  document.getElementById('arcNewEnd').value = '';
+  renderArcModalList();
+  const blocked = hasOpenArc(arcModalTarget);
+  document.getElementById('arcNewFormBlocked').style.display = blocked ? 'block' : 'none';
+  document.getElementById('arcNewForm').style.display = blocked ? 'none' : 'grid';
+}
+
+async function deleteArcPrompt(arcId){
+  const ok = await customConfirm('¿Eliminar este arco? Los capítulos que tenía adentro no se borran, solo dejan de estar agrupados (pasan a "Sin arco").', { icon:'🗑️', title:'Eliminar arco', okText:'Eliminar' });
+  if(!ok) return;
+  const key = seriesKey(arcModalTarget);
+  seriesArcs[key] = (seriesArcs[key] || []).filter(a => a.id !== arcId);
+  render();
+  await saveAll();
+  renderArcModalList();
+  const blocked = hasOpenArc(arcModalTarget);
+  document.getElementById('arcNewFormBlocked').style.display = blocked ? 'block' : 'none';
+  document.getElementById('arcNewForm').style.display = blocked ? 'none' : 'grid';
+}
+window.deleteArcPrompt = deleteArcPrompt;
+
+// Construye el HTML de las tarjetas de episodio para una lista de entries. Se usa tanto para el
+// listado plano (series sin arcos definidos) como para cada arco individual (series con arcos).
+function renderSeriesEntryCards(items){
+  return items.map(e => {
+    if(e.id === editingId){
+      const ratingOptions = [0,1,2,3,4,5].map(v =>
+        `<option value="${v}" ${e.rating == v ? 'selected' : ''}>${v === 0 ? 'Sin calif.' : '★'.repeat(v)}</option>`
+      ).join('');
+      return `
+        <div class="entry-card editing" data-id="${e.id}">
+          <div class="edit-grid">
+            <div class="edit-field"><label>Temporada</label><input type="number" min="0" class="edit-season" value="${e.season ?? ''}"></div>
+            <div class="edit-field"><label>Capítulo</label><input type="number" min="0" class="edit-episode" value="${e.episode ?? ''}"></div>
+            <div class="edit-field"><label>Fecha</label><input type="text" class="edit-date" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)" value="${e.date ? isoToDisplay(e.date) : ''}" ${!e.date ? 'disabled' : ''}></div>
+            <div class="edit-field"><label>Hora</label><input type="time" class="edit-time" value="${e.time || ''}" ${!e.date ? 'disabled' : ''}></div>
+          </div>
+          <label class="checkbox-row-inline edit-line">
+            <input type="checkbox" class="edit-date-unknown" ${!e.date ? 'checked' : ''}
+              onchange="const c=this.closest('.entry-card'); c.querySelector('.edit-date').disabled=this.checked; c.querySelector('.edit-time').disabled=this.checked;">
+            No recuerdo la fecha/hora exacta
+          </label>
+          <div class="edit-field full"><label>Calificación</label><select class="edit-rating">${ratingOptions}</select></div>
+          <label class="checkbox-row-inline edit-line"><input type="checkbox" class="edit-rewatch" ${e.rewatch ? 'checked' : ''}> 🔁 Es un rewatch</label>
+          <div class="edit-field full"><label>Nota</label><textarea class="edit-note">${escapeHtml(e.note || '')}</textarea></div>
+          <div class="edit-actions">
+            <button class="btn-mini save" onclick="saveEdit('${e.id}')">✔ Guardar</button>
+            <button class="btn-mini" onclick="cancelEdit()">✕ Cancelar</button>
+          </div>
+        </div>`;
+    }
+    const tParts = [];
+    if(e.season !== '' && e.season != null) tParts.push(`T${pad(e.season)}`);
+    if(e.episode !== '' && e.episode != null) tParts.push(`E${pad(e.episode)}`);
+    const tag = tParts.length ? tParts.join(' ') : 'Sin especificar';
+    const stars = starString(e.rating);
+    const isSelected = bulkSelectedIds.has(e.id);
+    return `
+      <div class="entry-card ${isSelected ? 'bulk-selected' : ''}" data-id="${e.id}">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          ${bulkEditMode ? `<input type="checkbox" class="entry-select-box" ${isSelected ? 'checked' : ''} onchange="toggleEntrySelection('${e.id}', this.closest('.entry-card'))">` : ''}
+          <div class="entry-left">
+            <div class="entry-tag-row">
+              <span class="entry-tag">${tag}</span>
+              ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
+              ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
+            </div>
+            <div class="entry-time">${fmtDate(e.date, e.time)}</div>
+            ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
+          </div>
+        </div>
+        <div class="entry-actions">
+          <button class="del-btn" onclick="startEdit('${e.id}')" title="Editar">✎</button>
+          <button class="del-btn" onclick="deleteEntry('${e.id}')" title="Eliminar registro">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function render(skipExtras = false){
+  if(!skipExtras){
+    renderContinueWatching();
+    renderTimeCapsulePanel();
+    updateSerieList();
+  }
   const container = document.getElementById('logContainer');
   const search = document.getElementById('fSearch').value.trim().toLowerCase();
   const statusFilter = document.getElementById('fStatusFilter').value;
@@ -5319,60 +5706,9 @@ function render(){
     const st = getStatus(serie);
     const isOpen = expandedSeries.has(seriesKey(serie));
     const cover = covers[seriesKey(serie)] || null;
-
-    const cards = items.map(e => {
-      if(e.id === editingId){
-        const ratingOptions = [0,1,2,3,4,5].map(v =>
-          `<option value="${v}" ${e.rating == v ? 'selected' : ''}>${v === 0 ? 'Sin calif.' : '★'.repeat(v)}</option>`
-        ).join('');
-        return `
-          <div class="entry-card editing" data-id="${e.id}">
-            <div class="edit-grid">
-              <div class="edit-field"><label>Temporada</label><input type="number" min="0" class="edit-season" value="${e.season ?? ''}"></div>
-              <div class="edit-field"><label>Capítulo</label><input type="number" min="0" class="edit-episode" value="${e.episode ?? ''}"></div>
-              <div class="edit-field"><label>Fecha</label><input type="text" class="edit-date" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDateInput(this)" value="${e.date ? isoToDisplay(e.date) : ''}" ${!e.date ? 'disabled' : ''}></div>
-              <div class="edit-field"><label>Hora</label><input type="time" class="edit-time" value="${e.time || ''}" ${!e.date ? 'disabled' : ''}></div>
-            </div>
-            <label class="checkbox-row-inline edit-line">
-              <input type="checkbox" class="edit-date-unknown" ${!e.date ? 'checked' : ''}
-                onchange="const c=this.closest('.entry-card'); c.querySelector('.edit-date').disabled=this.checked; c.querySelector('.edit-time').disabled=this.checked;">
-              No recuerdo la fecha/hora exacta
-            </label>
-            <div class="edit-field full"><label>Calificación</label><select class="edit-rating">${ratingOptions}</select></div>
-            <label class="checkbox-row-inline edit-line"><input type="checkbox" class="edit-rewatch" ${e.rewatch ? 'checked' : ''}> 🔁 Es un rewatch</label>
-            <div class="edit-field full"><label>Nota</label><textarea class="edit-note">${escapeHtml(e.note || '')}</textarea></div>
-            <div class="edit-actions">
-              <button class="btn-mini save" onclick="saveEdit('${e.id}')">✔ Guardar</button>
-              <button class="btn-mini" onclick="cancelEdit()">✕ Cancelar</button>
-            </div>
-          </div>`;
-      }
-      const tParts = [];
-      if(e.season !== '' && e.season != null) tParts.push(`T${pad(e.season)}`);
-      if(e.episode !== '' && e.episode != null) tParts.push(`E${pad(e.episode)}`);
-      const tag = tParts.length ? tParts.join(' ') : 'Sin especificar';
-      const stars = starString(e.rating);
-      const isSelected = bulkSelectedIds.has(e.id);
-      return `
-        <div class="entry-card ${isSelected ? 'bulk-selected' : ''}" data-id="${e.id}">
-          <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-            ${bulkEditMode ? `<input type="checkbox" class="entry-select-box" ${isSelected ? 'checked' : ''} onchange="toggleEntrySelection('${e.id}', this.closest('.entry-card'))">` : ''}
-            <div class="entry-left">
-              <div class="entry-tag-row">
-                <span class="entry-tag">${tag}</span>
-                ${stars ? `<span class="entry-stars">${stars}</span>` : ''}
-                ${e.rewatch ? `<span class="entry-rewatch">🔁 rewatch</span>` : ''}
-              </div>
-              <div class="entry-time">${fmtDate(e.date, e.time)}</div>
-              ${e.note ? `<div class="entry-note">"${escapeHtml(e.note)}"</div>` : ''}
-            </div>
-          </div>
-          <div class="entry-actions">
-            <button class="del-btn" onclick="startEdit('${e.id}')" title="Editar">✎</button>
-            <button class="del-btn" onclick="deleteEntry('${e.id}')" title="Eliminar registro">✕</button>
-          </div>
-        </div>`;
-    }).join('');
+    const arcsList = getArcsForSeries(serie);
+    const hasArcs = arcsList.length > 0;
+    const cards = hasArcs ? '' : renderSeriesEntryCards(items);
 
     const groupGenre = getGenre(serie);
     const groupType = getType(serie);
@@ -5421,12 +5757,13 @@ function render(){
                   onclick="event.stopPropagation(); openTitleSearch('series', decodeURIComponent('${encodeURIComponent(serie)}'))"
                   title="${isLinked ? 'Vinculada a ' + (seriesApiLink[seriesKey(serie)].source === 'jikan' ? 'Jikan/MAL' : 'TMDB') + ' — tocar para cambiar' : 'Vincular con Jikan/TMDB (no depende de que el nombre coincida)'}">🔗</span>
             <button class="status-toggle ${st}" onclick="event.stopPropagation(); toggleStatus(decodeURIComponent('${encodeURIComponent(serie)}'))">${STATUS_LABELS[st]}</button>
+            <span class="arc-manage-btn" onclick="event.stopPropagation(); openArcModal(decodeURIComponent('${encodeURIComponent(serie)}'))" title="${hasArcs ? 'Gestionar arcos' : 'Dividir esta serie en arcos (opcional, para series muy largas)'}">📜${hasArcs ? '' : '+'}</span>
           </div>
         </div>
         ${progressBarHtml}
         <div class="entries-collapse ${isOpen ? 'open' : ''}">
           ${st === 'curso' ? `<button type="button" class="quick-log-btn" onclick="event.stopPropagation(); quickLogNextEpisode(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Registrar el siguiente episodio ahora mismo">▶ +1 episodio ahora</button>` : ''}
-          ${cards}
+          ${hasArcs ? buildArcGroupedHtml(serie, items, arcsList) : cards}
         </div>
       </div>`;
   }).join('');
@@ -5434,11 +5771,11 @@ function render(){
   updateGlobalStats();
 }
 
-document.getElementById('fSearch').addEventListener('input', render);
-document.getElementById('fStatusFilter').addEventListener('change', render);
-document.getElementById('fGenreFilter').addEventListener('change', render);
-document.getElementById('fTypeFilter').addEventListener('change', render);
-document.getElementById('fSortFilter').addEventListener('change', render);
+document.getElementById('fSearch').addEventListener('input', debounce(() => render(true)));
+document.getElementById('fStatusFilter').addEventListener('change', () => render(true));
+document.getElementById('fGenreFilter').addEventListener('change', () => render(true));
+document.getElementById('fTypeFilter').addEventListener('change', () => render(true));
+document.getElementById('fSortFilter').addEventListener('change', () => render(true));
 
 /*PAPELERA*/
 function daysLeftInTrash(item){
@@ -5572,9 +5909,11 @@ function groupMovieEntries(list){
   return { groups, order };
 }
 
-function renderMovies(){
-  updateMovieList();
-  renderTimeCapsulePanel();
+function renderMovies(skipExtras = false){
+  if(!skipExtras){
+    updateMovieList();
+    renderTimeCapsulePanel();
+  }
   const container = document.getElementById('movieLogContainer');
   const search = document.getElementById('mSearch').value.trim().toLowerCase();
 
@@ -5719,10 +6058,10 @@ function renderMovies(){
 
   updateGlobalStats();
 }
-document.getElementById('mSearch').addEventListener('input', renderMovies);
-document.getElementById('mGenreFilter').addEventListener('change', renderMovies);
-document.getElementById('mTypeFilter').addEventListener('change', renderMovies);
-document.getElementById('mSortFilter').addEventListener('change', renderMovies);
+document.getElementById('mSearch').addEventListener('input', debounce(() => renderMovies(true)));
+document.getElementById('mGenreFilter').addEventListener('change', () => renderMovies(true));
+document.getElementById('mTypeFilter').addEventListener('change', () => renderMovies(true));
+document.getElementById('mSortFilter').addEventListener('change', () => renderMovies(true));
 
 /*FRANQUICIAS (solo películas)*/
 function getFranchiseKey(title){ return movieSagas[seriesKey(title)] || null; }
@@ -5801,6 +6140,12 @@ document.getElementById('franchiseModalClose').addEventListener('click', closeCr
 document.getElementById('franchiseModalSave').addEventListener('click', saveCreateFranchiseModal);
 document.getElementById('franchiseModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'franchiseModalOverlay') closeCreateFranchiseModal();
+});
+
+document.getElementById('arcModalClose').addEventListener('click', closeArcModal);
+document.getElementById('arcNewSave').addEventListener('click', addArcFromModal);
+document.getElementById('arcModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'arcModalOverlay') closeArcModal();
 });
 
 /*RANKINGS*/
@@ -5882,7 +6227,7 @@ function renderRankings(){
   renderRankingGroup(ratedSeries, 'rankSeriesBest', 'rankSeriesWorst', rankingSeriesCard, 'capítulos');
   renderRankingGroup(ratedMovies, 'rankMoviesBest', 'rankMoviesWorst', rankingMovieCard, 'películas');
 }
-document.getElementById('rankSearch').addEventListener('input', renderRankings);
+document.getElementById('rankSearch').addEventListener('input', debounce(renderRankings));
 document.getElementById('rankGenreFilter').addEventListener('change', renderRankings);
 
 /*MAPA DE ACTIVIDAD*/
