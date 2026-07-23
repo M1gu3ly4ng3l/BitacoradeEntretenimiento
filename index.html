@@ -845,6 +845,44 @@ body{
 .status-toggle.rewatch{ color:var(--rewatch); border-color:var(--rewatch); }
 .status-toggle.abandonada{ color:var(--text-dim); border-color:var(--text-dim); opacity:0.75; }
 .entries-collapse{ display:none; padding-left:4px; }
+
+/* ---------- Grilla de carpetas cerradas (estilo póster) ---------- */
+.folder-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(92px, 1fr));
+  gap:14px 10px;
+  margin-top:6px;
+}
+.folder-tile{ cursor:pointer; display:flex; flex-direction:column; gap:6px; }
+.folder-tile-cover{
+  position:relative; width:100%; aspect-ratio:2/3; border-radius:9px;
+  background-size:cover; background-position:center; background-color:var(--bg-card);
+  border:1px solid var(--line); overflow:hidden;
+  display:flex; align-items:center; justify-content:center; font-size:26px;
+  transition:border-color .12s ease;
+}
+.folder-tile:hover .folder-tile-cover{ border-color:var(--tape); }
+.folder-tile-cover.empty{ color:var(--text-dim); }
+.folder-tile-dot{
+  position:absolute; top:6px; right:6px; width:9px; height:9px; border-radius:50%;
+  border:1.5px solid rgba(0,0,0,0.45); box-shadow:0 0 4px rgba(0,0,0,0.3);
+}
+.folder-tile-dot.status-dot-curso{ background:var(--amber); }
+.folder-tile-dot.status-dot-terminada{ background:var(--tape); }
+.folder-tile-dot.status-dot-rewatch{ background:var(--rewatch); }
+.folder-tile-dot.status-dot-abandonada{ background:var(--text-dim); }
+.folder-tile-progress{
+  position:absolute; left:5px; right:5px; bottom:5px; height:3px; border-radius:2px;
+  background:rgba(0,0,0,0.5); overflow:hidden;
+}
+.folder-tile-progress-fill{ height:100%; background:var(--tape); }
+.folder-tile-name{
+  font-size:10.5px; color:var(--text); text-align:center; line-height:1.25;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+@media (max-width:480px){
+  .folder-grid{ grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:12px 8px; }
+}
 .entries-collapse.open{ display:block; }
 
 /*Género*/
@@ -945,13 +983,6 @@ body{
 .arc-modal-name{ font-size:13px; font-weight:600; color:var(--text); }
 .arc-modal-range{ font-size:10.5px; color:var(--text-dim); margin-top:2px; }
 .arc-modal-actions{ display:flex; gap:6px; flex-shrink:0; }
-.arc-color-presets{ display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
-.arc-color-swatch{
-  width:40px; height:40px; border-radius:50%; border:2px solid var(--line);
-  cursor:pointer; padding:0;
-}
-.arc-color-swatch:hover{ border-color:var(--text-dim); }
-.arc-color-swatch.active{ border-color:var(--text); box-shadow:0 0 0 2px var(--bg-card), 0 0 0 3px var(--text); }
 
 /*Música*/
 .music-btn{
@@ -1978,8 +2009,7 @@ body{
       <button class="wrapped-close" id="arcModalClose" title="Cerrar">✕</button>
       <div class="panel-label" id="arcModalTitle">📜 Arcos</div>
       <div style="font-size:11.5px; color:var(--text-dim); margin:-6px 0 12px; line-height:1.5;">
-        Opcional, pensado para series muy largas (ej. One Piece). Cada arco agrupa un rango de capítulos
-        (puede empezar en una temporada y terminar en la siguiente, ej. termina T2 y sigue hasta T3);
+        Opcional, pensado para series muy largas (ej. One Piece). Cada arco agrupa un rango de capítulos;
         el más nuevo puede quedar abierto ("en emisión") y absorbe capítulos nuevos solo. Los capítulos que
         no entren en ningún rango quedan en "Sin arco", sin perderse.
       </div>
@@ -1992,32 +2022,11 @@ body{
       <div id="arcNewForm" style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:4px;">
         <input type="text" id="arcNewName" placeholder="Nombre del arco (ej: Alabasta)">
         <div style="display:flex; gap:8px;">
-          <input type="number" id="arcNewStartSeason" min="1" placeholder="Temp. inicio" style="width:100px;">
           <input type="number" id="arcNewStart" min="1" placeholder="Capítulo inicio" style="flex:1;">
-        </div>
-        <div style="display:flex; gap:8px;">
-          <input type="number" id="arcNewEndSeason" min="1" placeholder="Temp. fin (opc.)" style="width:100px;">
           <input type="number" id="arcNewEnd" min="1" placeholder="Capítulo fin (opcional)" style="flex:1;">
         </div>
         <button type="button" class="btn-record" id="arcNewSave" style="margin-top:0;">✚ Agregar arco</button>
         <div class="error-msg" id="arcNewErr" style="display:none;"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="arcColorModalOverlay" style="display:none;">
-    <div class="modal-card" style="max-width:340px;">
-      <button class="wrapped-close" id="arcColorModalClose" title="Cerrar">✕</button>
-      <div class="panel-label" id="arcColorModalTitle">🎨 Color del arco</div>
-      <div class="arc-color-presets" id="arcColorPresets"></div>
-      <label class="checkbox-row-inline" style="margin-top:12px;">
-        <input type="checkbox" id="arcColorCustomToggle"> Personalizado
-      </label>
-      <div id="arcColorCustomPickers" style="display:none; align-items:center; gap:10px; margin-top:10px;">
-        <input type="color" id="arcColorA" value="#a78bfa">
-        <span style="color:var(--text-dim);">→</span>
-        <input type="color" id="arcColorB" value="#4aa8e8">
-        <button type="button" class="btn-mini start" id="arcColorApplyCustom" style="margin-left:auto;">Aplicar</button>
       </div>
     </div>
   </div>
@@ -2315,16 +2324,6 @@ let activeSeriesSub = 'log';
 let activeMovieSub = 'log';
 
 function pad(n){ return String(n).padStart(2,'0'); }
-
-// Genérico: devuelve una versión de `fn` que espera `delay` ms de silencio antes de ejecutarse.
-// Se usa en los buscadores para no recalcular todo en cada tecla, solo cuando la persona hace una pausa.
-function debounce(fn, delay = 220){
-  let timer = null;
-  return function(...args){
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
 
 /* ========================= TOAST / DESHACER ========================= */
 function showUndoToast(message, undoFn, duration = 6000){
@@ -2743,63 +2742,12 @@ function exportBackup(){
   hideBackupReminder();
 }
 
-// Antes de reemplazar todo, nos fijamos que el archivo realmente tenga la forma de un
-// backup de esta app (y no, por ejemplo, un JSON cualquiera, uno de otra versión muy vieja,
-// o un archivo corrupto a medias). Si algo no encaja, avisamos con la razón puntual en vez
-// de dejar que la restauración siga adelante con datos raros.
-function validateBackupShape(parsed){
-  if(typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)){
-    return { valid:false, reason:'El archivo no es un backup válido (no tiene la estructura esperada de un objeto JSON).' };
-  }
-
-  const arrayFields = ['entries', 'movieEntries', 'pending', 'moviePending', 'trash', 'customAchievements'];
-  for(const field of arrayFields){
-    if(field in parsed && !Array.isArray(parsed[field])){
-      return { valid:false, reason:`El campo "${field}" del archivo debería ser una lista y no lo es. Puede que el archivo esté corrupto o no sea un backup de esta app.` };
-    }
-  }
-
-  const dictFields = ['status', 'covers', 'genres', 'types', 'folderMusic', 'seriesGoals', 'seriesDuration',
-    'movieCovers', 'movieGenres', 'movieTypes', 'movieFolderMusic', 'movieDuration', 'franchises', 'settings'];
-  for(const field of dictFields){
-    if(field in parsed && (typeof parsed[field] !== 'object' || parsed[field] === null || Array.isArray(parsed[field]))){
-      return { valid:false, reason:`El campo "${field}" del archivo no tiene el formato esperado. Puede que el archivo esté corrupto o no sea un backup de esta app.` };
-    }
-  }
-
-  // Si el archivo no tiene NINGUNO de los campos que reconocemos, probablemente no es un backup de la bitácora
-  const knownFields = [...arrayFields, ...dictFields, 'seriesApiLink', 'seriesArcs', 'sagas', 'movieSagas', 'deletedIds', 'statusManualAt', 'exportedAt', 'backupVersion'];
-  const hasAnyKnownField = knownFields.some(f => f in parsed);
-  if(!hasAnyKnownField){
-    return { valid:false, reason:'El archivo no tiene ninguno de los campos que esperaríamos de un backup de esta bitácora.' };
-  }
-
-  return { valid:true };
-}
-
 async function restoreBackup(file){
   const text = await file.text();
-  let parsed;
-  try{
-    parsed = JSON.parse(text);
-  }catch(err){
-    throw new Error('El archivo no es un JSON válido (¿seguro que es el backup correcto?).');
-  }
-
-  const check = validateBackupShape(parsed);
-  if(!check.valid){
-    throw new Error(check.reason);
-  }
-
-  // Guardamos una foto de lo que había ANTES de restaurar, para poder deshacer si el
-  // backup restaurado resulta no ser el que querías (ej. subiste uno viejo por error).
-  const previousData = collectAllData();
-
+  const parsed = JSON.parse(text);
   await applyAllData(parsed);
   localStorage.removeItem(pk('driveBaseSnapshot')); // el backup restaurado es una versión nueva; no comparar contra la sincronización vieja
   await saveAll();
-
-  return previousData;
 }
 
 document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
@@ -2813,16 +2761,11 @@ document.getElementById('backupFileInput').addEventListener('change', async (e) 
   const ok = await customConfirm('Restaurar un backup reemplaza TODOS tus datos actuales (series, películas, pendientes, portadas, música). ¿Seguro que quieres continuar?', { icon:'♻️', title:'Restaurar backup', okText:'Restaurar', danger:true });
   if(!ok) return;
   try{
-    const previousData = await restoreBackup(file);
-    showUndoToast('Backup restaurado con éxito. Se reemplazaron todos tus datos.', async () => {
-      await applyAllData(previousData);
-      localStorage.removeItem(pk('driveBaseSnapshot'));
-      await saveAll();
-    }, 15000);
+    await restoreBackup(file);
+    await customAlert('¡Backup restaurado con éxito!', { icon:'✅', title:'Listo' });
   }catch(err){
     console.error('Error al restaurar backup:', err);
-    const detail = (err && err.message) ? err.message : 'Asegúrate de que sea un backup exportado desde esta misma app (.json).';
-    await customAlert(`No se pudo restaurar ese archivo. ${detail}`, { icon:'⚠️', title:'Error' });
+    await customAlert('No se pudo leer ese archivo. Asegúrate de que sea un backup exportado desde esta misma app (.json).', { icon:'⚠️', title:'Error' });
   }
 });
 
@@ -3339,13 +3282,13 @@ if(isIos && !isStandalone){
 // el aviso se vea como una notificación nativa, con ícono y todo).
 let notifiedKeys = new Set();
 try{
-  notifiedKeys = new Set(JSON.parse(localStorage.getItem(pk('notifiedReleaseKeys')) || '[]'));
+  notifiedKeys = new Set(JSON.parse(localStorage.getItem('notifiedReleaseKeys') || '[]'));
 }catch(e){ notifiedKeys = new Set(); }
 
 function saveNotifiedKeys(){
   try{
     const arr = [...notifiedKeys].slice(-300); // no dejar que crezca sin límite
-    localStorage.setItem(pk('notifiedReleaseKeys'), JSON.stringify(arr));
+    localStorage.setItem('notifiedReleaseKeys', JSON.stringify(arr));
   }catch(e){ /* no-op */ }
 }
 
@@ -5360,7 +5303,7 @@ document.getElementById('globalSearchModalClose').addEventListener('click', clos
 document.getElementById('globalSearchModalOverlay').addEventListener('click', (e) => {
   if(e.target.id === 'globalSearchModalOverlay') closeGlobalSearch();
 });
-document.getElementById('globalSearchInput').addEventListener('input', debounce(runGlobalSearch));
+document.getElementById('globalSearchInput').addEventListener('input', runGlobalSearch);
 
 function renderTimeCapsulePanel(){
   const panel = document.getElementById('timeCapsulePanel');
@@ -5420,26 +5363,12 @@ function getArcsForSeries(name){
   const list = seriesArcs[seriesKey(name)] || [];
   return list.slice().sort((a, b) => a.start - b.start);
 }
-// Devuelve el arco cuyo rango contiene ese capítulo (o null si no hay match).
-// Los arcos nuevos guardan temporada+capítulo de inicio/fin, así que un arco puede cruzar
-// de una temporada a la siguiente (ej. termina en T2 y sigue hasta T3). Los arcos viejos
-// (creados antes de este cambio) no tienen temporada guardada, así que para esos se sigue
-// comparando solo por número de capítulo, como antes, para no romper lo que ya tenías armado.
-function findArcForEpisode(arcsList, seasonNum, episodeNum){
+// Devuelve el arco cuyo rango [start, end] contiene ese número de capítulo (o null si no hay match).
+// Un arco sin "end" (en emisión) contiene cualquier capítulo >= su start.
+function findArcForEpisode(arcsList, episodeNum){
   if(episodeNum == null || isNaN(episodeNum)) return null;
-  const s = (seasonNum == null || isNaN(seasonNum)) ? 1 : seasonNum;
-
   for(const arc of arcsList){
-    if(arc.startSeason == null){
-      // Arco viejo (sin temporada): comportamiento original, solo por capítulo
-      if(episodeNum >= arc.start && (arc.end == null || episodeNum <= arc.end)) return arc;
-      continue;
-    }
-    const afterStart = (s > arc.startSeason) || (s === arc.startSeason && episodeNum >= arc.start);
-    const beforeEnd = arc.endSeason == null
-      ? true
-      : (s < arc.endSeason) || (s === arc.endSeason && episodeNum <= arc.end);
-    if(afterStart && beforeEnd) return arc;
+    if(episodeNum >= arc.start && (arc.end == null || episodeNum <= arc.end)) return arc;
   }
   return null;
 }
@@ -5459,8 +5388,7 @@ function buildArcGroupedHtml(serie, items, arcsList){
 
   items.forEach(e => {
     const epNum = parseInt(e.episode, 10);
-    const seasonNum = parseInt(e.season, 10);
-    const arc = findArcForEpisode(arcsList, isNaN(seasonNum) ? null : seasonNum, isNaN(epNum) ? null : epNum);
+    const arc = findArcForEpisode(arcsList, isNaN(epNum) ? null : epNum);
     if(arc){
       buckets.find(b => b.arc.id === arc.id).items.push(e);
     } else {
@@ -5474,11 +5402,8 @@ function buildArcGroupedHtml(serie, items, arcsList){
     const arcKey = `${key}::${arc.id}`;
     const arcOpen = expandedArcs.has(arcKey);
     const isOngoing = arc.end == null;
-    const crossesSeasons = arc.startSeason != null && arc.endSeason != null && arc.endSeason !== arc.startSeason;
-    // Si el arco se queda dentro de una sola temporada podemos calcular el total restando;
-    // si cruza de temporada esa resta no tiene sentido, así que solo mostramos cuántos viste.
-    const total = (isOngoing || crossesSeasons) ? null : (arc.end - arc.start + 1);
-    const watched = new Set(arcItems.map(e => `${e.season ?? ''}|${e.episode}`)).size;
+    const total = isOngoing ? null : (arc.end - arc.start + 1);
+    const watched = new Set(arcItems.map(e => e.episode)).size;
     const pct = total ? Math.min(100, Math.round((watched / total) * 100)) : 0;
 
     html += `
@@ -5489,11 +5414,11 @@ function buildArcGroupedHtml(serie, items, arcsList){
           <span class="badge">${arcItems.length} ep.</span>
           ${isOngoing
             ? `<span class="arc-ongoing-tag">🔴 En emisión — ${watched} capítulos vistos</span>`
-            : (total ? `<span class="progress-label">${watched}/${total} · ${pct}%</span>` : `<span class="progress-label">${watched} vistos</span>`)}
+            : `<span class="progress-label">${watched}/${total} · ${pct}%</span>`}
           <span class="arc-header-spacer"></span>
           ${isOngoing ? `<button type="button" class="btn-mini" onclick="event.stopPropagation(); closeArcPrompt(decodeURIComponent('${encodeURIComponent(serie)}'),'${arc.id}')">Cerrar arco</button>` : ''}
         </div>
-        ${(!isOngoing && total) ? `<div class="progress-row" style="margin:0 0 8px 2px;"><div class="progress-track ${pct >= 100 ? 'complete' : ''}"${arc.colorA && arc.colorB ? ` style="background:linear-gradient(90deg, ${arc.colorA}, ${arc.colorB});"` : ''}><div class="progress-mask" style="width:${100 - pct}%"></div></div></div>` : ''}
+        ${!isOngoing ? `<div class="progress-row" style="margin:0 0 8px 2px;"><div class="progress-track ${pct >= 100 ? 'complete' : ''}"><div class="progress-mask" style="width:${100 - pct}%"></div></div></div>` : ''}
         <div class="entries-collapse ${arcOpen ? 'open' : ''}">${renderSeriesEntryCards(arcItems)}</div>
       </div>`;
   });
@@ -5527,35 +5452,22 @@ async function closeArcPrompt(serie, arcId){
   const list = seriesArcs[key] || [];
   const arc = list.find(a => a.id === arcId);
   if(!arc) return;
-
-  const defaultSeason = arc.startSeason != null ? arc.startSeason : 1;
-  const seasonInput = await customPrompt(`¿En qué temporada termina el arco "${arc.name}"?`, String(defaultSeason), { icon:'📜', title:'Cerrar arco', okText:'Siguiente' });
-  if(seasonInput === null) return;
-  const endSeason = parseInt(seasonInput, 10);
-  if(!(endSeason > 0)){
-    await customAlert('Ingresá un número de temporada válido.', { icon:'⚠️', title:'Número inválido' });
-    return;
-  }
-
-  const input = await customPrompt(`¿En qué capítulo de esa temporada termina el arco "${arc.name}"?`, '', { icon:'📜', title:'Cerrar arco', okText:'Cerrar arco' });
+  const input = await customPrompt(`¿En qué capítulo termina el arco "${arc.name}"?`, '', { icon:'📜', title:'Cerrar arco', okText:'Cerrar arco' });
   if(input === null) return;
   const n = parseInt(input, 10);
-  const afterStart = (endSeason > defaultSeason) || (endSeason === defaultSeason && n >= arc.start);
-  if(!(n > 0) || !afterStart){
-    await customAlert('El final tiene que quedar en la misma temporada de inicio (con capítulo mayor o igual) o en una temporada posterior.', { icon:'⚠️', title:'Rango inválido' });
+  if(!(n >= arc.start)){
+    await customAlert('El capítulo final tiene que ser mayor o igual al de inicio del arco.', { icon:'⚠️', title:'Número inválido' });
     return;
   }
-  arc.endSeason = endSeason;
   arc.end = n;
-  if(arc.startSeason == null) arc.startSeason = defaultSeason; // migra el arco viejo a formato con temporada
   render();
   await saveAll();
 
-  const wantsNext = await customConfirm(`¿Querés armar ya el siguiente arco, a partir de T${endSeason} capítulo ${n + 1}?`, { icon:'📜', title:'Siguiente arco', okText:'Sí, crear' });
+  const wantsNext = await customConfirm(`¿Querés armar ya el siguiente arco, a partir del capítulo ${n + 1}?`, { icon:'📜', title:'Siguiente arco', okText:'Sí, crear' });
   if(!wantsNext) return;
   const name = await customPrompt('Nombre del siguiente arco:', '', { icon:'📜', title:'Nuevo arco', okText:'Crear' });
   if(name === null || !name.trim()) return;
-  list.push({ id: genArcId(), name: name.trim(), startSeason: endSeason, start: n + 1, endSeason: null, end: null });
+  list.push({ id: genArcId(), name: name.trim(), start: n + 1, end: null });
   render();
   await saveAll();
 }
@@ -5570,108 +5482,24 @@ function renderArcModalList(){
     el.innerHTML = '<div class="activity-detail-empty">Todavía no hay arcos definidos para esta serie.</div>';
     return;
   }
-  el.innerHTML = list.map(arc => {
-    const startLabel = arc.startSeason != null ? `T${arc.startSeason} Cap. ${arc.start}` : `Cap. ${arc.start}`;
-    const endLabel = arc.end == null
-      ? 'en adelante (🔴 en emisión)'
-      : (arc.endSeason != null ? `T${arc.endSeason} Cap. ${arc.end}` : `Cap. ${arc.end}`);
-    return `
+  el.innerHTML = list.map(arc => `
     <div class="arc-modal-row">
       <div class="arc-modal-info">
         <div class="arc-modal-name">${escapeHtml(arc.name)}</div>
-        <div class="arc-modal-range">${startLabel} – ${endLabel}</div>
+        <div class="arc-modal-range">Cap. ${arc.start}${arc.end != null ? ` – ${arc.end}` : ' en adelante (🔴 en emisión)'}</div>
       </div>
       <div class="arc-modal-actions">
-        <button type="button" class="btn-mini" onclick="openArcColorModal('${arc.id}')" title="Elegir color de la barra de progreso">🎨</button>
         ${arc.end == null ? `<button type="button" class="btn-mini" onclick="closeArcPrompt(decodeURIComponent('${encodeURIComponent(arcModalTarget)}'),'${arc.id}')">Cerrar</button>` : ''}
         <button type="button" class="btn-mini" onclick="deleteArcPrompt('${arc.id}')" title="Eliminar arco (los capítulos no se borran, solo dejan de estar agrupados)">🗑️</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
-
-/* ---------- Color por arco (estético, no afecta el cálculo del progreso) ---------- */
-const ARC_COLOR_PRESETS = [
-  { id:'normal',       name:'Normal',            a:null,      b:null },
-  { id:'purple-blue',  name:'Morado → Azul',     a:'#a78bfa', b:'#4aa8e8' },
-  { id:'red-purple',   name:'Rojo → Morado',     a:'#e8432e', b:'#a78bfa' },
-  { id:'green-yellow', name:'Verde → Amarillo',  a:'#4ade80', b:'#f0c840' },
-  { id:'blue-green',   name:'Celeste → Verde',   a:'#4aa8e8', b:'#4ade80' }
-];
-let arcColorModalTarget = null; // id del arco cuyo modal de color está abierto
-
-function getArcById(arcId){
-  const key = seriesKey(arcModalTarget);
-  return (seriesArcs[key] || []).find(a => a.id === arcId);
-}
-
-function renderArcColorPresets(arc){
-  const el = document.getElementById('arcColorPresets');
-  el.innerHTML = ARC_COLOR_PRESETS.map(p => {
-    const isActive = p.a === null ? !arc.colorA : (p.a === arc.colorA && p.b === arc.colorB);
-    const bg = p.a
-      ? `linear-gradient(90deg, ${p.a}, ${p.b})`
-      : 'linear-gradient(90deg, var(--rec) 0%, var(--amber) 33%, var(--star) 66%, var(--tape) 100%)';
-    return `<button type="button" class="arc-color-swatch ${isActive ? 'active' : ''}" style="background:${bg}" title="${p.name}" onclick="applyArcColorPreset('${p.id}')"></button>`;
-  }).join('');
-}
-
-function openArcColorModal(arcId){
-  const arc = getArcById(arcId);
-  if(!arc) return;
-  arcColorModalTarget = arcId;
-  document.getElementById('arcColorModalTitle').textContent = `🎨 Color — ${arc.name}`;
-  renderArcColorPresets(arc);
-  document.getElementById('arcColorCustomToggle').checked = false;
-  document.getElementById('arcColorCustomPickers').style.display = 'none';
-  document.getElementById('arcColorA').value = arc.colorA || '#a78bfa';
-  document.getElementById('arcColorB').value = arc.colorB || '#4aa8e8';
-  document.getElementById('arcColorModalOverlay').style.display = 'flex';
-}
-window.openArcColorModal = openArcColorModal;
-function closeArcColorModal(){
-  document.getElementById('arcColorModalOverlay').style.display = 'none';
-  arcColorModalTarget = null;
-}
-
-async function applyArcColorPreset(presetId){
-  const preset = ARC_COLOR_PRESETS.find(p => p.id === presetId);
-  const arc = getArcById(arcColorModalTarget);
-  if(!preset || !arc) return;
-  if(preset.a == null){ delete arc.colorA; delete arc.colorB; }
-  else { arc.colorA = preset.a; arc.colorB = preset.b; }
-  render();
-  await saveAll();
-  closeArcColorModal();
-}
-window.applyArcColorPreset = applyArcColorPreset;
-
-async function applyArcColorCustom(){
-  const arc = getArcById(arcColorModalTarget);
-  if(!arc) return;
-  arc.colorA = document.getElementById('arcColorA').value;
-  arc.colorB = document.getElementById('arcColorB').value;
-  render();
-  await saveAll();
-  closeArcColorModal();
-}
-
-document.getElementById('arcColorModalClose').addEventListener('click', closeArcColorModal);
-document.getElementById('arcColorModalOverlay').addEventListener('click', (e) => {
-  if(e.target.id === 'arcColorModalOverlay') closeArcColorModal();
-});
-document.getElementById('arcColorCustomToggle').addEventListener('change', (e) => {
-  document.getElementById('arcColorCustomPickers').style.display = e.target.checked ? 'flex' : 'none';
-});
-document.getElementById('arcColorApplyCustom').addEventListener('click', applyArcColorCustom);
 
 function openArcModal(serie){
   arcModalTarget = serie;
   document.getElementById('arcModalTitle').textContent = `📜 Arcos — ${serie}`;
   document.getElementById('arcNewName').value = '';
-  document.getElementById('arcNewStartSeason').value = '';
   document.getElementById('arcNewStart').value = '';
-  document.getElementById('arcNewEndSeason').value = '';
   document.getElementById('arcNewEnd').value = '';
   renderArcModalList();
   const blocked = hasOpenArc(serie);
@@ -5687,19 +5515,14 @@ function closeArcModal(){
 
 async function addArcFromModal(){
   const name = document.getElementById('arcNewName').value.trim();
-  const startSeasonRaw = document.getElementById('arcNewStartSeason').value;
-  const startSeason = startSeasonRaw.trim() === '' ? 1 : parseInt(startSeasonRaw, 10);
   const start = parseInt(document.getElementById('arcNewStart').value, 10);
-  const endSeasonRaw = document.getElementById('arcNewEndSeason').value;
   const endRaw = document.getElementById('arcNewEnd').value;
   const end = endRaw.trim() === '' ? null : parseInt(endRaw, 10);
-  const endSeason = end == null ? null : (endSeasonRaw.trim() === '' ? startSeason : parseInt(endSeasonRaw, 10));
   const errEl = document.getElementById('arcNewErr');
   errEl.style.display = 'none';
 
-  const rangeOk = end == null || endSeason > startSeason || (endSeason === startSeason && end >= start);
-  if(!name || !(startSeason > 0) || !(start > 0) || !rangeOk){
-    errEl.textContent = 'Completá un nombre, temporada+capítulo de inicio válidos, y si ponés fin, que sea igual o posterior al inicio (temporada y capítulo).';
+  if(!name || !(start > 0) || (end != null && !(end >= start))){
+    errEl.textContent = 'Completá un nombre, un capítulo de inicio válido, y si ponés fin, que sea mayor o igual al inicio.';
     errEl.style.display = 'block';
     return;
   }
@@ -5710,13 +5533,11 @@ async function addArcFromModal(){
     errEl.style.display = 'block';
     return;
   }
-  seriesArcs[key].push({ id: genArcId(), name, startSeason, start, endSeason, end });
+  seriesArcs[key].push({ id: genArcId(), name, start, end });
   render();
   await saveAll();
   document.getElementById('arcNewName').value = '';
-  document.getElementById('arcNewStartSeason').value = '';
   document.getElementById('arcNewStart').value = '';
-  document.getElementById('arcNewEndSeason').value = '';
   document.getElementById('arcNewEnd').value = '';
   renderArcModalList();
   const blocked = hasOpenArc(arcModalTarget);
@@ -5796,12 +5617,29 @@ function renderSeriesEntryCards(items){
   }).join('');
 }
 
-function render(skipExtras = false){
-  if(!skipExtras){
-    renderContinueWatching();
-    renderTimeCapsulePanel();
-    updateSerieList();
-  }
+// Tile de carpeta cerrada, estilo póster: portada, puntito de estado (si aplica) y una
+// barrita de progreso finita sin texto (si hay meta). Al tocarlo, se expande igual que
+// tocando el header de siempre.
+function folderTileHtml({ name, cover, placeholderIcon, pct, statusClass, onclickJs }){
+  const dotHtml = statusClass ? `<span class="folder-tile-dot ${statusClass}"></span>` : '';
+  const progressHtml = (pct != null && pct > 0)
+    ? `<div class="folder-tile-progress"><div class="folder-tile-progress-fill" style="width:${pct}%"></div></div>`
+    : '';
+  return `
+    <div class="folder-tile" onclick="${onclickJs}">
+      <div class="folder-tile-cover ${cover ? '' : 'empty'}" style="${cover ? `background-image:url('${cover}')` : ''}">
+        ${cover ? '' : placeholderIcon}
+        ${dotHtml}
+        ${progressHtml}
+      </div>
+      <div class="folder-tile-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+    </div>`;
+}
+
+function render(){
+  renderContinueWatching();
+  renderTimeCapsulePanel();
+  updateSerieList();
   const container = document.getElementById('logContainer');
   const search = document.getElementById('fSearch').value.trim().toLowerCase();
   const statusFilter = document.getElementById('fStatusFilter').value;
@@ -5845,7 +5683,7 @@ function render(skipExtras = false){
   }
   // 'reciente' ya queda resuelto por el orden natural de `filtered` (más reciente primero)
 
-  container.innerHTML = order.map(serie => {
+  const rendered = order.map(serie => {
     const items = groups[serie].sort((a, b) => {
       const sa = isNaN(parseInt(a.season,10)) ? 0 : parseInt(a.season,10);
       const sb = isNaN(parseInt(b.season,10)) ? 0 : parseInt(b.season,10);
@@ -5880,7 +5718,7 @@ function render(skipExtras = false){
           ${isLinked ? `<button type="button" class="progress-refresh-btn" onclick="refreshSeriesGoal(decodeURIComponent('${encodeURIComponent(serie)}'))" title="Consultar ahora si hay un total nuevo (Jikan/TMDB)">🔄</button>` : ''}
         </div>` : '';
 
-    return `
+    const expandedHtml = `
       <div class="series-group" data-group-key="${seriesKey(serie)}">
         <div class="series-header" onclick="toggleExpand(decodeURIComponent('${encodeURIComponent(serie)}'))">
           <div class="series-name">
@@ -5917,16 +5755,31 @@ function render(skipExtras = false){
           ${hasArcs ? buildArcGroupedHtml(serie, items, arcsList) : cards}
         </div>
       </div>`;
-  }).join('');
+
+    const tileHtml = folderTileHtml({
+      name: serie,
+      cover,
+      placeholderIcon: '📺',
+      pct: goal > 0 ? pct : null,
+      statusClass: `status-dot-${st}`,
+      onclickJs: `toggleExpand(decodeURIComponent('${encodeURIComponent(serie)}'))`
+    });
+
+    return { isOpen, expandedHtml, tileHtml };
+  });
+
+  const expandedBlocks = rendered.filter(r => r.isOpen).map(r => r.expandedHtml).join('');
+  const gridTiles = rendered.filter(r => !r.isOpen).map(r => r.tileHtml).join('');
+  container.innerHTML = expandedBlocks + (gridTiles ? `<div class="folder-grid">${gridTiles}</div>` : '');
 
   updateGlobalStats();
 }
 
-document.getElementById('fSearch').addEventListener('input', debounce(() => render(true)));
-document.getElementById('fStatusFilter').addEventListener('change', () => render(true));
-document.getElementById('fGenreFilter').addEventListener('change', () => render(true));
-document.getElementById('fTypeFilter').addEventListener('change', () => render(true));
-document.getElementById('fSortFilter').addEventListener('change', () => render(true));
+document.getElementById('fSearch').addEventListener('input', render);
+document.getElementById('fStatusFilter').addEventListener('change', render);
+document.getElementById('fGenreFilter').addEventListener('change', render);
+document.getElementById('fTypeFilter').addEventListener('change', render);
+document.getElementById('fSortFilter').addEventListener('change', render);
 
 /*PAPELERA*/
 function daysLeftInTrash(item){
@@ -6060,11 +5913,9 @@ function groupMovieEntries(list){
   return { groups, order };
 }
 
-function renderMovies(skipExtras = false){
-  if(!skipExtras){
-    updateMovieList();
-    renderTimeCapsulePanel();
-  }
+function renderMovies(){
+  updateMovieList();
+  renderTimeCapsulePanel();
   const container = document.getElementById('movieLogContainer');
   const search = document.getElementById('mSearch').value.trim().toLowerCase();
 
@@ -6102,7 +5953,7 @@ function renderMovies(skipExtras = false){
     order.sort((a,b) => avgRatingOf(groups[b].items) - avgRatingOf(groups[a].items));
   }
 
-  container.innerHTML = order.map(groupKey => {
+  const renderedMovies = order.map(groupKey => {
     const group = groups[groupKey];
     const { isFranchise, franchiseKey, displayName } = group;
     const items = group.items.sort((a,b) => sortKeyOf(a) - sortKeyOf(b));
@@ -6168,10 +6019,12 @@ function renderMovies(skipExtras = false){
     const groupType = isFranchise ? '' : getMovieType(displayName);
 
     let progressBarHtml = '';
+    let franchisePct = null;
     if(isFranchise){
       const goal = (franchises[franchiseKey] && franchises[franchiseKey].goal) || 0;
       const distinctTitles = new Set(items.map(e => seriesKey(e.title))).size;
       const pct = goal > 0 ? Math.min(100, Math.round((distinctTitles / goal) * 100)) : 0;
+      franchisePct = goal > 0 ? pct : null;
       progressBarHtml = goal > 0 ? `
         <div class="progress-row">
           <div class="progress-track ${pct >= 100 ? 'complete' : ''}"><div class="progress-mask" style="width:${100 - pct}%"></div></div>
@@ -6180,7 +6033,7 @@ function renderMovies(skipExtras = false){
         </div>` : '';
     }
 
-    return `
+    const expandedHtml = `
       <div class="series-group" data-group-key="${dispKey}">
         <div class="series-header" onclick="toggleMovieExpand(decodeURIComponent('${encodeURIComponent(displayName)}'))">
           <div class="series-name">
@@ -6205,14 +6058,29 @@ function renderMovies(skipExtras = false){
         ${progressBarHtml}
         <div class="entries-collapse ${isOpen ? 'open' : ''}">${cards}</div>
       </div>`;
-  }).join('');
+
+    const tileHtml = folderTileHtml({
+      name: displayName,
+      cover,
+      placeholderIcon: isFranchise ? '🎞️' : '🎬',
+      pct: franchisePct,
+      statusClass: null,
+      onclickJs: `toggleMovieExpand(decodeURIComponent('${encodeURIComponent(displayName)}'))`
+    });
+
+    return { isOpen, expandedHtml, tileHtml };
+  });
+
+  const expandedMovieBlocks = renderedMovies.filter(r => r.isOpen).map(r => r.expandedHtml).join('');
+  const movieGridTiles = renderedMovies.filter(r => !r.isOpen).map(r => r.tileHtml).join('');
+  container.innerHTML = expandedMovieBlocks + (movieGridTiles ? `<div class="folder-grid">${movieGridTiles}</div>` : '');
 
   updateGlobalStats();
 }
-document.getElementById('mSearch').addEventListener('input', debounce(() => renderMovies(true)));
-document.getElementById('mGenreFilter').addEventListener('change', () => renderMovies(true));
-document.getElementById('mTypeFilter').addEventListener('change', () => renderMovies(true));
-document.getElementById('mSortFilter').addEventListener('change', () => renderMovies(true));
+document.getElementById('mSearch').addEventListener('input', renderMovies);
+document.getElementById('mGenreFilter').addEventListener('change', renderMovies);
+document.getElementById('mTypeFilter').addEventListener('change', renderMovies);
+document.getElementById('mSortFilter').addEventListener('change', renderMovies);
 
 /*FRANQUICIAS (solo películas)*/
 function getFranchiseKey(title){ return movieSagas[seriesKey(title)] || null; }
@@ -6378,7 +6246,7 @@ function renderRankings(){
   renderRankingGroup(ratedSeries, 'rankSeriesBest', 'rankSeriesWorst', rankingSeriesCard, 'capítulos');
   renderRankingGroup(ratedMovies, 'rankMoviesBest', 'rankMoviesWorst', rankingMovieCard, 'películas');
 }
-document.getElementById('rankSearch').addEventListener('input', debounce(renderRankings));
+document.getElementById('rankSearch').addEventListener('input', renderRankings);
 document.getElementById('rankGenreFilter').addEventListener('change', renderRankings);
 
 /*MAPA DE ACTIVIDAD*/
